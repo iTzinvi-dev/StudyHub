@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { motion, MotionConfig } from 'framer-motion';
+import { SoundMixer } from '../components/SoundMixer';
 import { WindowScene } from '../components/window-scene';
 import { clock, DAILY_GOAL_MS, timeLabel } from '../lib/focus';
 import { useAuth } from '../lib/auth';
@@ -359,6 +360,12 @@ export default function Home() {
                 </section>
               </aside>
             </div>
+
+            {zen && (
+              <div className="mt-6 max-w-md">
+                <SoundMixer />
+              </div>
+            )}
 
             <section id="desk-log" className="desk-log" aria-labelledby="log-heading">
               <div className="log-heading">
