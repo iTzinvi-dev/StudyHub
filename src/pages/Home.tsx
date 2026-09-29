@@ -1,5 +1,6 @@
 import { Suspense, lazy, useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { motion, MotionConfig } from 'framer-motion';
+import { RoomPanel } from '../components/RoomPanel';
 import { SoundMixer } from '../components/SoundMixer';
 import { WindowScene } from '../components/window-scene';
 import { clock, DAILY_GOAL_MS, timeLabel } from '../lib/focus';
@@ -353,16 +354,7 @@ export default function Home() {
                   </p>
                 </section>
 
-                <section className="room-card" aria-labelledby="room-heading">
-                  <div className="card-topline">
-                    <h2 id="room-heading">Good company.</h2>
-                  </div>
-                  <p className="room-description">Shared study rooms.</p>
-                  <div className="empty-log">
-                    <span aria-hidden="true">↳</span>
-                    <p>Nothing yet.<br /><span>Rooms show up here once you join one.</span></p>
-                  </div>
-                </section>
+                <RoomPanel />
 
                 <Suspense fallback={null}>
                   <AiPanel />
