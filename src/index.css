@@ -1,0 +1,287 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Typefaces */
+  --font-display: "Instrument Serif", serif;
+  --font-body: "Inter", sans-serif;
+
+  /* Core palette (HSL triplets) */
+  --background: 201 100% 13%; /* deep navy blue */
+  --foreground: 0 0% 100%; /* white */
+
+  --card: 201 100% 13%;
+  --card-foreground: 0 0% 100%;
+
+  --popover: 201 100% 13%;
+  --popover-foreground: 0 0% 100%;
+
+  --primary: 0 0% 100%;
+  --primary-foreground: 0 0% 4%;
+
+  --secondary: 0 0% 10%;
+  --secondary-foreground: 0 0% 100%;
+
+  --muted: 0 0% 10%;
+  --muted-foreground: 240 4% 66%; /* muted gray */
+
+  --accent: 0 0% 10%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+
+  --border: 0 0% 18%;
+  --input: 0 0% 18%;
+  --ring: 0 0% 66%;
+
+  --chart-1: 201 100% 45%;
+  --chart-2: 201 100% 30%;
+  --chart-3: 201 60% 20%;
+  --chart-4: 201 40% 40%;
+  --chart-5: 201 100% 55%;
+
+  --radius: 0.625rem;
+}
+
+.dark {
+  /* Single dark theme — values are identical to :root by design. */
+  --background: 201 100% 13%;
+  --foreground: 0 0% 100%;
+  --card: 201 100% 13%;
+  --card-foreground: 0 0% 100%;
+  --popover: 201 100% 13%;
+  --popover-foreground: 0 0% 100%;
+  --primary: 0 0% 100%;
+  --primary-foreground: 0 0% 4%;
+  --secondary: 0 0% 10%;
+  --secondary-foreground: 0 0% 100%;
+  --muted: 0 0% 10%;
+  --muted-foreground: 240 4% 66%;
+  --accent: 0 0% 10%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 18%;
+  --input: 0 0% 18%;
+  --ring: 0 0% 66%;
+  --chart-1: 201 100% 45%;
+  --chart-2: 201 100% 30%;
+  --chart-3: 201 60% 20%;
+  --chart-4: 201 40% 40%;
+  --chart-5: 201 100% 55%;
+}
+
+@theme inline {
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+
+  --color-chart-1: hsl(var(--chart-1));
+  --color-chart-2: hsl(var(--chart-2));
+  --color-chart-3: hsl(var(--chart-3));
+  --color-chart-4: hsl(var(--chart-4));
+  --color-chart-5: hsl(var(--chart-5));
+
+  /* Inline literals (not var(--font-*)) so the theme does not
+     self-reference the :root custom properties of the same name.
+     Generates the `font-display` / `font-body` utilities. */
+  --font-display: "Instrument Serif", serif;
+  --font-body: "Inter", sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  html {
+    scroll-behavior: smooth;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: var(--font-body);
+    font-weight: 400;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    font-family: var(--font-display);
+  }
+}
+
+/* ---------------------------------------------------------------
+   Liquid glass
+   Kept unlayered on purpose: an unlayered rule outranks Tailwind's
+   layered utilities, so the glass surface always wins over bg-*
+   helpers on the same element.
+   --------------------------------------------------------------- */
+.liquid-glass {
+  background: rgba(255, 255, 255, 0.01);
+  background-blend-mode: luminosity;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: none;
+  box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+  position: relative;
+  overflow: hidden;
+}
+
+.liquid-glass::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1.4px;
+  background: linear-gradient(
+    180deg,
+    rgba(255, 255, 255, 0.45) 0%,
+    rgba(255, 255, 255, 0.15) 20%,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0) 60%,
+    rgba(255, 255, 255, 0.15) 80%,
+    rgba(255, 255, 255, 0.45) 100%
+  );
+  -webkit-mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#fff 0 0) content-box,
+    linear-gradient(#fff 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/*
+ * Lightning CSS (Tailwind v4's compiler) treats `backdrop-filter` and
+ * `-webkit-backdrop-filter` as one property and keeps only the last one it
+ * sees — which silently kills the blur in Firefox. Guarding the standard
+ * property in @supports keeps both alive in the compiled output.
+ */
+@supports (backdrop-filter: blur(4px)) {
+  .liquid-glass {
+    backdrop-filter: blur(4px);
+  }
+}
+
+/* ---------------------------------------------------------------
+   Entrance animation
+   --------------------------------------------------------------- */
+@keyframes fade-rise {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-rise {
+  animation: fade-rise 0.8s ease-out both;
+}
+
+.animate-fade-rise-delay {
+  animation: fade-rise 0.8s ease-out 0.2s both;
+}
+
+.animate-fade-rise-delay-2 {
+  animation: fade-rise 0.8s ease-out 0.4s both;
+}
+
+/* ---------------------------------------------------------------
+   Mobile menu drop
+   --------------------------------------------------------------- */
+@keyframes menu-drop {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-menu-drop {
+  animation: menu-drop 0.25s ease-out both;
+}
+
+/* ---------------------------------------------------------------
+   Video loading surface
+   Stands in for a poster frame while the ~14 MB clip decodes.
+   `is-ready` fades it out and pauses the animation so a hidden
+   element is not repainting forever.
+   --------------------------------------------------------------- */
+@keyframes loading-drift {
+  from {
+    background-position: 0% 50%;
+  }
+  to {
+    background-position: 200% 50%;
+  }
+}
+
+.video-loading {
+  background-image: linear-gradient(
+    100deg,
+    hsl(201 100% 11%) 0%,
+    hsl(201 85% 19%) 45%,
+    hsl(201 100% 11%) 90%
+  );
+  background-size: 200% 100%;
+  animation: loading-drift 7s linear infinite;
+}
+
+.video-loading.is-ready {
+  opacity: 0;
+  animation-play-state: paused;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-fade-rise,
+  .animate-fade-rise-delay,
+  .animate-fade-rise-delay-2,
+  .animate-menu-drop {
+    animation: none;
+  }
+
+  .video-loading {
+    animation: none;
+  }
+}
