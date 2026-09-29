@@ -1,39 +1,59 @@
-import { useEffect, useRef, useState, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { motion, MotionConfig } from 'framer-motion';
 import { WindowScene } from '../components/window-scene';
+import { clock, DAILY_GOAL_MS, timeLabel } from '../lib/focus';
+import { useAuth } from '../lib/auth';
+import { isSupabaseConfigured } from '../lib/supabase';
 import {
-  clock,
-  DAILY_GOAL_MS,
-  duration,
-  timeLabel,
-  todayDuration,
-  type Interval,
-  type StudySession,
-} from '../lib/focus';
+  dayStart,
+  fetchSessions,
+  finishSession,
+  startSession,
+  totalMsOnDay,
+  type CompletedSession,
+  type OpenSession,
+} from '../lib/sessions';
 
 export default function Home() {
+  const { profile, user } = useAuth();
   const [topic, setTopic] = useState('');
   const [topicError, setTopicError] = useState('');
-  const [intervals, setIntervals] = useState<Interval[]>([]);
-  const [startedAt, setStartedAt] = useState<number | null>(null);
+  const [openSession, setOpenSession] = useState<OpenSession | null>(null);
   const [now, setNow] = useState(0);
-  const [sessions, setSessions] = useState<StudySession[]>([]);
+  const [sessions, setSessions] = useState<CompletedSession[]>([]);
+  const [visitIds, setVisitIds] = useState<string[]>([]);
   const [zen, setZen] = useState(false);
   const [online, setOnline] = useState<boolean | null>(null);
   const [announcement, setAnnouncement] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState('');
   const zenButton = useRef<HTMLButtonElement>(null);
   const topicInput = useRef<HTMLInputElement>(null);
-  const running = startedAt !== null;
-  const hasSession = running || intervals.length > 0;
-  const activeIntervals = startedAt === null
-    ? intervals
-    : [...intervals, { start: startedAt, end: Math.max(now, startedAt) }];
-  const elapsed = duration(activeIntervals);
-  const today = todayDuration(
-    [...sessions.flatMap((session) => session.intervals), ...activeIntervals],
-    now,
-  );
+
+  const running = openSession !== null;
+  const hasSession = running || visitIds.length > 0;
+
+  // Milliseconds already banked during this visit, from rows the server closed.
+  const bankedThisVisit = sessions
+    .filter((session) => visitIds.includes(session.id))
+    .reduce((total, session) => total + (session.end - session.start), 0);
+
+  // The running row is not in `sessions` yet, so its time is counted live.
+  const liveElapsed = running ? Math.max(0, now - openSession.startedAt) : 0;
+
+  const elapsed = bankedThisVisit + liveElapsed;
+  const today = totalMsOnDay(sessions, dayStart(now)) + liveElapsed;
   const progress = Math.min(100, (today / DAILY_GOAL_MS) * 100);
+  const blocked = !isSupabaseConfigured || online === false;
+
+  const refresh = useCallback(async () => {
+    try {
+      setSessions(await fetchSessions());
+      setLoadError('');
+    } catch (error) {
+      setLoadError(error instanceof Error ? error.message : 'Could not load your sessions.');
+    }
+  }, []);
 
   useEffect(() => {
     const tick = () => setNow(Date.now());
@@ -54,6 +74,10 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
+    if (isSupabaseConfigured && user) void refresh();
+  }, [refresh, user]);
+
+  useEffect(() => {
     if (!zen) return;
 
     const escape = (event: KeyboardEvent) => {
@@ -68,22 +92,28 @@ export default function Home() {
   }, [zen]);
 
   useEffect(() => {
-    if (!hasSession && sessions.length === 0) return;
+    if (!hasSession) return;
 
     const warn = (event: BeforeUnloadEvent) => event.preventDefault();
     window.addEventListener('beforeunload', warn);
     return () => window.removeEventListener('beforeunload', warn);
-  }, [hasSession, sessions.length]);
+  }, [hasSession]);
 
-  function toggleTimer(event: FormEvent<HTMLFormElement>) {
+  async function toggleTimer(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    const timestamp = Date.now();
-    setNow(timestamp);
 
-    if (startedAt !== null) {
-      setIntervals((previous) => [...previous, { start: startedAt, end: timestamp }]);
-      setStartedAt(null);
-      setAnnouncement('Session paused.');
+    if (openSession !== null) {
+      setSaving(true);
+      try {
+        await finishSession(openSession.id);
+        setOpenSession(null);
+        await refresh();
+        setAnnouncement('Session paused.');
+      } catch (error) {
+        setAnnouncement(error instanceof Error ? error.message : 'Could not save that pause.');
+      } finally {
+        setSaving(false);
+      }
       return;
     }
 
@@ -93,39 +123,55 @@ export default function Home() {
       return;
     }
 
-    setTopicError('');
-    setTopic(topic.trim());
-    setStartedAt(timestamp);
-    setAnnouncement(intervals.length ? 'Session resumed.' : 'Session started.');
-  }
-
-  function finishSession() {
-    const timestamp = Date.now();
-    const completed = startedAt === null
-      ? intervals
-      : [...intervals, { start: startedAt, end: timestamp }];
-    const recorded = duration(completed) > 0;
-
-    if (recorded) {
-      setSessions((previous) => [
-        { id: crypto.randomUUID(), topic, intervals: completed },
-        ...previous,
-      ]);
+    if (blocked) {
+      setAnnouncement(
+        isSupabaseConfigured ? 'You need a connection to start a session.' : 'StudyHub is not connected yet.'
+      );
+      return;
     }
 
-    setStartedAt(null);
-    setIntervals([]);
-    setNow(timestamp);
-    setTopic('');
-    setAnnouncement(recorded ? 'Session added to your desk log.' : 'No study time recorded.');
-    window.requestAnimationFrame(() => topicInput.current?.focus());
+    setTopicError('');
+    setSaving(true);
+    try {
+      const started = await startSession(topic.trim());
+      setTopic(started.topic);
+      setOpenSession(started);
+      setVisitIds((previous) => [...previous, started.id]);
+      setAnnouncement(visitIds.length ? 'Session resumed.' : 'Session started.');
+    } catch (error) {
+      setAnnouncement(error instanceof Error ? error.message : 'Could not start that session.');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function finishCurrentSession() {
+    if (!openSession) {
+      window.requestAnimationFrame(() => topicInput.current?.focus());
+      return;
+    }
+
+    setSaving(true);
+    try {
+      await finishSession(openSession.id);
+      await refresh();
+      setAnnouncement('Session added to your desk log.');
+    } catch (error) {
+      setAnnouncement(error instanceof Error ? error.message : 'Could not close that session.');
+    } finally {
+      setSaving(false);
+      setOpenSession(null);
+      setTopic('');
+      setVisitIds([]);
+      window.requestAnimationFrame(() => topicInput.current?.focus());
+    }
   }
 
   function resetTimer() {
     if (!window.confirm('Discard this unfinished session? Your desk log stays.')) return;
 
-    setStartedAt(null);
-    setIntervals([]);
+    setOpenSession(null);
+    setVisitIds([]);
     setAnnouncement('Timer reset. Your topic is kept.');
     window.requestAnimationFrame(() => topicInput.current?.focus());
   }
@@ -157,10 +203,18 @@ export default function Home() {
             <p>One topic.<br />A little uninterrupted time.</p>
           </div>
           <div className="local-profile">
-            <span className="avatar matcha" aria-hidden="true">Y</span>
+            <span className="avatar matcha" aria-hidden="true">
+              {(profile?.username ?? user?.email ?? 's').charAt(0).toUpperCase()}
+            </span>
             <div>
-              <strong>Your own pace</strong>
-              <span>Local preview · no account</span>
+              <strong>{profile?.username ?? 'Your own pace'}</strong>
+              <span>
+                {profile ? (
+                  <a href={`/p/${profile.username}`}>View profile ↗</a>
+                ) : (
+                  'No profile yet'
+                )}
+              </span>
             </div>
           </div>
         </aside>
@@ -206,7 +260,7 @@ export default function Home() {
                   <h2 id="timer-heading" className="eyebrow">The focus corner</h2>
                   <span className="session-state">
                     <span className={`status-dot${running ? ' breathing' : ' idle'}`} aria-hidden="true" />
-                    {running ? 'Focusing' : hasSession ? 'Paused' : 'Ready when you are'}
+                    {saving ? 'Saving' : running ? 'Focusing' : hasSession ? 'Paused' : 'Ready when you are'}
                   </span>
                 </div>
                 <WindowScene />
@@ -246,15 +300,15 @@ export default function Home() {
                     {running ? 'Just you and the work.' : hasSession ? 'Take the break you need.' : 'Count up. No deadline.'}
                   </p>
                   <div className="timer-actions">
-                    <motion.button whileTap={{ scale: 0.97 }} type="submit" className="primary-button">
+                    <motion.button whileTap={{ scale: 0.97 }} type="submit" className="primary-button" disabled={saving}>
                       <span aria-hidden="true">{running ? 'Ⅱ' : '▷'}</span>
                       {running ? 'Pause' : hasSession ? 'Keep going' : 'Start focusing'}
                     </motion.button>
                     <button
                       className="quiet-button"
                       type="button"
-                      onClick={finishSession}
-                      disabled={!hasSession}
+                      onClick={finishCurrentSession}
+                      disabled={!hasSession || saving}
                     >
                       Finish session
                     </button>
@@ -266,8 +320,8 @@ export default function Home() {
                   )}
                 </form>
                 <footer className="focus-footer">
-                  <span>Preview · not synced</span>
-                  <span>Leaving this page clears your log.</span>
+                  <span>{blocked ? 'Not saving yet' : 'Saved to your account'}</span>
+                  <span>Durations come from the server clock.</span>
                 </footer>
               </section>
 
@@ -309,33 +363,36 @@ export default function Home() {
             <section id="desk-log" className="desk-log" aria-labelledby="log-heading">
               <div className="log-heading">
                 <h2 id="log-heading">Small steps, recorded.</h2>
-                <span>{sessions.length} {sessions.length === 1 ? 'session' : 'sessions'} on this visit</span>
+                <span>{sessions.length} {sessions.length === 1 ? 'session' : 'sessions'} recorded</span>
               </div>
-              {sessions.length === 0 ? (
+              {loadError && (
+                <p className="mt-3 text-xs text-clay" role="alert">{loadError}</p>
+              )}
+              {sessions.length === 0 && !loadError ? (
                 <div className="empty-log">
                   <span aria-hidden="true">↳</span>
-                  <p>Your first session goes here.<br /><span>Finish a session to add it.</span></p>
+                  <p>Nothing yet.<br /><span>Finish a session to add it.</span></p>
                 </div>
               ) : (
                 <ul className="session-list">
-                  {sessions.map((session) => (
+                  {sessions.slice(0, 12).map((session) => (
                     <li key={session.id}>
                       <span className="log-dot" aria-hidden="true" />
                       <strong>{session.topic}</strong>
-                      <time dateTime={new Date(session.intervals[0].start).toISOString()}>
-                        {new Date(session.intervals[0].start).toLocaleTimeString([], {
+                      <time dateTime={new Date(session.start).toISOString()}>
+                        {new Date(session.start).toLocaleTimeString([], {
                           hour: '2-digit',
                           minute: '2-digit',
                         })}
                       </time>
-                      <span>{timeLabel(duration(session.intervals))}</span>
+                      <span>{timeLabel(session.end - session.start)}</span>
                     </li>
                   ))}
                 </ul>
               )}
             </section>
             <footer className="page-footer">
-              <span>Local preview · your device’s calendar day</span>
+              <span>Sessions are stamped by the server, in your calendar day</span>
               <nav aria-label="Information" className="flex flex-wrap items-center gap-5">
                 <a className="inline-flex min-h-11 items-center hover:text-matcha" href="/about">About</a>
                 <a className="inline-flex min-h-11 items-center hover:text-matcha" href="/terms">Terms</a>

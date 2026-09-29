@@ -20,17 +20,16 @@ export default function AboutPage() {
         <ul>
           <li>A count-up timer with pause, resume, finish, and reset.</li>
           <li>A four-hour daily target based on your device’s local day.</li>
-          <li>A session log for the current visit.</li>
+          <li>A session log that stays with your account.</li>
           <li>Zen mode, keyboard controls, and responsive layouts.</li>
         </ul>
       </section>
       <section aria-labelledby="planned">
         <h2 id="planned">Not here yet</h2>
         <p>
-          Accounts, persistent records, shared rooms, ambient audio, AI study tools,
-          and installable offline support are planned, not working features of this
-          preview. The sample room is an illustration of the direction, not a live
-          leaderboard.
+          Shared rooms, ambient audio, AI study tools, public profiles, and
+          installable offline support are planned, not working features yet. The
+          room panel shows an honest empty state rather than invented people.
         </p>
       </section>
     </article>
