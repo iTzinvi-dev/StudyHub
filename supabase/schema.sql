@@ -297,3 +297,66 @@ from information_schema.tables
 where table_schema = 'public'
   and table_name in ('profiles', 'study_sessions', 'rooms', 'room_members', 'streak_freezes')
 order by table_name;
+
+-- ============================================================================
+-- Session RPCs
+--
+-- Timestamps are taken from the database, never from the browser clock, so a
+-- wrong device time cannot inflate anyone's study hours.
+-- ============================================================================
+
+create or replace function public.start_study_session(p_topic text)
+returns uuid
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  new_id uuid;
+begin
+  if auth.uid() is null then
+    raise exception 'Not signed in.' using errcode = '42501';
+  end if;
+
+  if p_topic is null or char_length(trim(p_topic)) = 0 then
+    raise exception 'A session needs a topic.' using errcode = '22023';
+  end if;
+
+  insert into public.study_sessions (user_id, topic, started_at)
+  values (auth.uid(), trim(p_topic), now())
+  returning id into new_id;
+
+  return new_id;
+end;
+$$;
+
+create or replace function public.finish_study_session(p_id uuid)
+returns timestamptz
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  finished_at timestamptz;
+begin
+  if auth.uid() is null then
+    raise exception 'Not signed in.' using errcode = '42501';
+  end if;
+
+  update public.study_sessions
+  set ended_at = now()
+  where id = p_id
+    and user_id = auth.uid()
+    and ended_at is null
+  returning ended_at into finished_at;
+
+  if finished_at is null then
+    raise exception 'No open session with that id.' using errcode = 'P0002';
+  end if;
+
+  return finished_at;
+end;
+$$;
+
+grant execute on function public.start_study_session(text) to authenticated;
+grant execute on function public.finish_study_session(uuid) to authenticated;
