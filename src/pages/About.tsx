@@ -1,10 +1,3 @@
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'About',
-  description: 'The idea behind StudyHub: a calm study desk, readable design, and less noise.',
-};
-
 export default function AboutPage() {
   return (
     <article>

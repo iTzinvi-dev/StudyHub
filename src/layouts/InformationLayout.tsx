@@ -1,6 +1,6 @@
-import type { ReactNode } from 'react';
+import { Outlet } from 'react-router-dom';
 
-export default function InformationLayout({ children }: { children: ReactNode }) {
+export function InformationLayout() {
   return (
     <div className="mx-auto flex min-h-svh max-w-3xl flex-col px-6 py-8 sm:px-10 sm:py-12">
       <a className="skip-link" href="#content">Skip to content</a>
@@ -16,7 +16,7 @@ export default function InformationLayout({ children }: { children: ReactNode })
         tabIndex={-1}
         className="flex-1 text-sm leading-7 text-cream/80 [&_h2]:mb-3 [&_h2]:font-display [&_h2]:text-xl [&_h2]:text-cream [&_p+p]:mt-4 [&_section]:mt-9 [&_ul]:list-disc [&_ul]:space-y-2 [&_ul]:pl-5"
       >
-        {children}
+        <Outlet />
       </main>
       <footer className="mt-14 flex flex-wrap justify-between gap-6 border-t border-white/10 pt-6 text-xs text-cream/70">
         <span>StudyHub · frontend preview</span>

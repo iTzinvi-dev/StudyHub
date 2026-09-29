@@ -1,5 +1,3 @@
-'use client';
-
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { motion, MotionConfig } from 'framer-motion';
 import { WindowScene } from '../components/window-scene';
@@ -12,12 +10,6 @@ import {
   type Interval,
   type StudySession,
 } from '../lib/focus';
-
-const companions = [
-  { initials: 'NA', name: 'Nadia', topic: 'Organic chemistry', time: '2h 12m', color: 'matcha' },
-  { initials: 'AR', name: 'Arif', topic: 'A small break', time: '1h 48m', color: 'clay' },
-  { initials: 'MI', name: 'Mina', topic: 'Reading Murakami', time: '1h 06m', color: 'lavender' },
-];
 
 export default function Home() {
   const [topic, setTopic] = useState('');
@@ -304,24 +296,12 @@ export default function Home() {
                 <section className="room-card" aria-labelledby="room-heading">
                   <div className="card-topline">
                     <h2 id="room-heading">Good company.</h2>
-                    <span className="sample-badge">Sample</span>
                   </div>
-                  <p className="room-description">A preview of shared study rooms.</p>
-                  <ul className="companions">
-                    {companions.map((person) => (
-                      <li key={person.name}>
-                        <span className={`avatar ${person.color}`} aria-hidden="true">
-                          {person.initials}
-                        </span>
-                        <div>
-                          <strong>{person.name}</strong>
-                          <span>{person.topic}</span>
-                        </div>
-                        <span className="companion-time">{person.time}</span>
-                      </li>
-                    ))}
-                  </ul>
-                  <p className="room-footer">Fictional people. No live connection yet.</p>
+                  <p className="room-description">Shared study rooms.</p>
+                  <div className="empty-log">
+                    <span aria-hidden="true">↳</span>
+                    <p>Nothing yet.<br /><span>Rooms show up here once you join one.</span></p>
+                  </div>
                 </section>
               </aside>
             </div>

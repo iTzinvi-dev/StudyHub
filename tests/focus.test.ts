@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { clock, DAILY_GOAL_MS, duration, timeLabel, todayDuration } from '../lib/focus.ts';
+import { clock, DAILY_GOAL_MS, duration, timeLabel, todayDuration } from '../src/lib/focus.ts';
 
 test('counts active intervals without counting pauses', () => {
   const intervals = [

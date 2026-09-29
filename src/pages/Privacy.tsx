@@ -1,10 +1,3 @@
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Privacy',
-  description: 'How topics, timer records, and browser information are handled in the StudyHub preview.',
-};
-
 export default function PrivacyPage() {
   return (
     <article>

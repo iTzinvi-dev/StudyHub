@@ -1,10 +1,3 @@
-import type { Metadata } from 'next';
-
-export const metadata: Metadata = {
-  title: 'Terms & conditions',
-  description: 'Terms and limitations for the StudyHub frontend preview.',
-};
-
 export default function TermsPage() {
   return (
     <article>
