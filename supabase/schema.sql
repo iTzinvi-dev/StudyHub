@@ -185,6 +185,13 @@ on conflict (id) do nothing;
 -- ----------------------------------------------------------------------------
 -- RLS policies
 -- ----------------------------------------------------------------------------
+-- The three tables created above are new, so row level security has to be turned
+-- on for them explicitly. Policies alone are inert: on a table where RLS is not
+-- enabled Postgres skips them entirely, and every signed-in user can read and
+-- write every row. profiles and study_sessions already had RLS on.
+alter table public.rooms enable row level security;
+alter table public.room_members enable row level security;
+alter table public.streak_freezes enable row level security;
 
 -- profiles: readable by anyone (public /p/:username pages), writable by owner.
 drop policy if exists "profiles are readable by everyone" on public.profiles;
@@ -233,13 +240,33 @@ create policy "owners update their rooms"
   with check (auth.uid() = owner_id);
 
 -- room_members: you see the roster of rooms you belong to, and manage your own row.
+--
+-- The roster policy must not select from room_members itself. A policy that reads
+-- the table it guards re-enters itself for every row and Postgres aborts the
+-- query with 42P17 "infinite recursion detected in policy". This security-definer
+-- helper answers "which room am I in?" from outside RLS, so the policy itself only
+-- ever compares two uuids. room_members has a unique(user_id) constraint, so it
+-- returns at most one row.
+--
+-- create or replace (not drop + create): the existing policy depends on this
+-- function, and dropping it would fail with "dependent objects still exist".
+create or replace function public.my_room_id()
+  returns uuid
+  language sql
+  stable
+  security definer
+  set search_path = public
+  as $$
+    select room_id from public.room_members where user_id = auth.uid();
+  $$;
+
+revoke all on function public.my_room_id() from public;
+grant execute on function public.my_room_id() to anon, authenticated;
+
 drop policy if exists "members read their room roster" on public.room_members;
 create policy "members read their room roster"
   on public.room_members for select
-  using (
-    auth.uid() = user_id
-    or exists (select 1 from public.room_members m where m.room_id = room_id and m.user_id = auth.uid())
-  );
+  using (auth.uid() = user_id or room_id = public.my_room_id());
 
 drop policy if exists "users join as themselves" on public.room_members;
 create policy "users join as themselves"
