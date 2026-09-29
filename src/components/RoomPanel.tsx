@@ -286,7 +286,7 @@ export function RoomPanel() {
             </ul>
           )}
 
-          <div className="room-footer">
+          <div className="room-footer flex items-center justify-between gap-3">
             <span>Presence updates on its own.</span>
             <button type="button" className="quiet-button" onClick={leave} disabled={busy}>
               Leave
