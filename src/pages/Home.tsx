@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { Suspense, lazy, useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
 import { motion, MotionConfig } from 'framer-motion';
 import { SoundMixer } from '../components/SoundMixer';
 import { WindowScene } from '../components/window-scene';
@@ -14,6 +14,11 @@ import {
   type CompletedSession,
   type OpenSession,
 } from '../lib/sessions';
+
+// react-markdown + KaTeX are ~400 kB. They load only if the panel is opened.
+const AiPanel = lazy(() =>
+  import('../components/AiPanel').then((module) => ({ default: module.AiPanel }))
+);
 
 export default function Home() {
   const { profile, user } = useAuth();
@@ -358,6 +363,10 @@ export default function Home() {
                     <p>Nothing yet.<br /><span>Rooms show up here once you join one.</span></p>
                   </div>
                 </section>
+
+                <Suspense fallback={null}>
+                  <AiPanel />
+                </Suspense>
               </aside>
             </div>
 
