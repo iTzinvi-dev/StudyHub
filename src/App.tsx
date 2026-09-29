@@ -7,6 +7,7 @@ import { useDocumentMeta } from "./lib/meta"
 import About from "./pages/About"
 import Home from "./pages/Home"
 import NotFound from "./pages/NotFound"
+import ProfilePage from "./pages/Profile"
 import Privacy from "./pages/Privacy"
 import Terms from "./pages/Terms"
 
@@ -28,6 +29,7 @@ function AppRoutes() {
           <Route path="/terms" element={<Terms />} />
           <Route path="/privacy" element={<Privacy />} />
         </Route>
+        <Route path="/p/:username" element={<ProfilePage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
   )

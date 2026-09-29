@@ -360,3 +360,76 @@ $$;
 
 grant execute on function public.start_study_session(text) to authenticated;
 grant execute on function public.finish_study_session(uuid) to authenticated;
+
+-- ============================================================================
+-- Public profile stats
+--
+-- study_sessions is private (topics are personal), so a public profile page
+-- cannot read it directly. This returns aggregates only: per-day second counts
+-- and a total. No topics, no timestamps, nothing that identifies what someone
+-- was studying.
+-- ============================================================================
+
+create or replace function public.public_profile_stats(p_username text)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+stable
+as $$
+declare
+  target_id  uuid;
+  result     jsonb;
+begin
+  select id into target_id
+  from public.profiles
+  where lower(username) = lower(p_username);
+
+  if target_id is null then
+    return null;
+  end if;
+
+  select jsonb_build_object(
+    'username', p.username,
+    'bio', coalesce(p.bio, ''),
+    'avatar_url', coalesce(p.avatar_url, ''),
+    'total_seconds', coalesce((
+      select floor(sum(extract(epoch from (s.ended_at - s.started_at))))::bigint
+      from public.study_sessions s
+      where s.user_id = target_id and s.ended_at is not null
+    ), 0),
+    'days', coalesce((
+      select jsonb_object_agg(d.day, d.seconds)
+      from (
+        select to_char(date_trunc('day', s.started_at), 'YYYY-MM-DD') as day,
+               floor(sum(extract(epoch from (s.ended_at - s.started_at))))::bigint as seconds
+        from public.study_sessions s
+        where s.user_id = target_id and s.ended_at is not null
+        group by 1
+      ) d
+    ), '{}'::jsonb)
+  ) into result
+  from public.profiles p
+  where p.id = target_id;
+
+  return result;
+end;
+$$;
+
+grant execute on function public.public_profile_stats(text) to anon, authenticated;
+
+-- Streak freezes the user has spent, for their own profile view.
+create or replace function public.my_streak_freezes()
+returns setof date
+language sql
+security definer
+set search_path = public
+stable
+as $$
+  select used_on
+  from public.streak_freezes
+  where user_id = auth.uid()
+  order by used_on desc;
+$$;
+
+grant execute on function public.my_streak_freezes() to authenticated;

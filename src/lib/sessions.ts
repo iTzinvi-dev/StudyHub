@@ -120,16 +120,15 @@ export function heatmap(sessions: CompletedSession[]): Map<string, number> {
 }
 
 /**
- * Consecutive days at or over the 4h goal, ending today or yesterday.
- * `frozenDays` are days the user spent a streak freeze on — they neither add to
- * the streak nor break it.
+ * Streak from an already-bucketed day -> milliseconds map. Shared by the
+ * private desk (which builds buckets from rows) and the public profile page
+ * (which receives buckets from the aggregate RPC).
  */
-export function currentStreak(
-  sessions: CompletedSession[],
+export function streakFromDaySeconds(
+  buckets: Map<string, number>,
   frozenDays: string[],
   now: number
 ): number {
-  const buckets = heatmap(sessions)
   const frozen = new Set(frozenDays)
 
   let streak = 0
@@ -154,6 +153,19 @@ export function currentStreak(
   }
 
   return streak
+}
+
+/**
+ * Consecutive days at or over the 4h goal, ending today or yesterday.
+ * `frozenDays` are days the user spent a streak freeze on — they neither add to
+ * the streak nor break it.
+ */
+export function currentStreak(
+  sessions: CompletedSession[],
+  frozenDays: string[],
+  now: number
+): number {
+  return streakFromDaySeconds(heatmap(sessions), frozenDays, now)
 }
 
 /** True once this calendar day has reached the 4h goal. */
