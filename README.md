@@ -16,12 +16,12 @@ A distraction-free, multiplayer productivity PWA designed for deep focus.
 1. Clone the repo and run `npm install`.
 
 
-## **Credits** : وَمَا تَوْفِيقِي إِلَّا بِاللَّهِ
+## **Credits** :  وَمَا تَوْفِيقِي إِلَّا بِاللَّهِ
 
 **Opensourced**
 
 ## **optional mentioned**:
-                                      she <3...  يا روحي.....
+                                     she <3...  يا روحي.....
 **visit to see**: 
                   https://study-hub-six-woad.vercel.app/
                   
