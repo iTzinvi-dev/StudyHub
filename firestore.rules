@@ -1,0 +1,50 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Global Default Deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() > 0 && id.size() <= 128;
+    }
+
+    // Users Collection (Public profiles and Leaderboard)
+    match /users/{userId} {
+      allow get, list: if true;
+      allow create: if isOwner(userId) && isValidId(userId);
+      allow update: if isOwner(userId);
+      allow delete: if false;
+
+      // Subcollection for Focus Sessions (Heatmap tracking)
+      match /sessions/{sessionId} {
+        allow read: if true;
+        allow write: if isOwner(userId) && isValidId(sessionId);
+      }
+    }
+
+    // Presence Collection (Real-time Lounges / AFK radar)
+    match /presence/{userId} {
+      allow get, list: if true;
+      allow create, update: if isOwner(userId) && isValidId(userId);
+      allow delete: if isOwner(userId);
+    }
+
+    // Rooms Collection (Public and Private Study Sanctuaries)
+    match /rooms/{roomId} {
+      allow get, list: if true;
+      allow create: if isSignedIn() && isValidId(roomId);
+      allow update: if isSignedIn();
+      allow delete: if false;
+    }
+  }
+}

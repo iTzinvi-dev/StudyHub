@@ -1,0 +1,21 @@
+{
+  "id": "/",
+  "name": "ZenBonfire - Aesthetic Focus PWA",
+  "short_name": "ZenBonfire",
+  "description": "An immersive, human-crafted focus sanctuary with live multiplayer rooms, bonfire Zen mode, and KaTeX AI mentor.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#1A1A00",
+  "theme_color": "#1A1A00",
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "192x192 512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": ["productivity", "education"]
+}

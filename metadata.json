@@ -1,0 +1,9 @@
+{
+  "name": "LOCAL ACOUSTIC & VISUAL SANCTUARY",
+  "description": "LOCAL ACOUSTIC & VISUAL SANCTUARY - An immersive, human-crafted focus sanctuary with curated binaural ambient audio, study desk atmosphere, bonfire zen mode, and focus companion.",
+  "request": "LOCAL ACOUSTIC & VISUAL SANCTUARY - Immersive & Aesthetic Multi-Scene Focus PWA with multiplayer, bonfire zen mode, audio mixer, KaTeX AI mentor, and active recall quizzes",
+  "version": "1.0.0",
+  "capabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

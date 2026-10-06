@@ -1,0 +1,87 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile with streak, focus hours, and status",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "email": { "type": "string" },
+        "defaultAvatar": { "type": "string" },
+        "bio": { "type": "string", "maxLength": 500 },
+        "gender": { "type": "string" },
+        "currentStatus": { "type": "string", "maxLength": 100 },
+        "totalHours": { "type": "number" },
+        "currentStreak": { "type": "number" },
+        "freezeTickets": { "type": "number" },
+        "todayMinutes": { "type": "number" },
+        "dailyGoalHours": { "type": "number" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["uid", "name", "totalHours", "currentStreak"]
+    },
+    "FocusSession": {
+      "title": "FocusSession",
+      "description": "Logged focus time sessions for heatmap tracking",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "minutes": { "type": "number" },
+        "hours": { "type": "number" },
+        "date": { "type": "string" },
+        "phase": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["userId", "minutes", "date", "createdAt"]
+    },
+    "Presence": {
+      "title": "Presence",
+      "description": "Real-time presence state in lounge and rooms",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "name": { "type": "string" },
+        "avatarId": { "type": "string" },
+        "status": { "type": "string" },
+        "roomId": { "type": "string" },
+        "isAfk": { "type": "boolean" },
+        "lastSeen": { "type": "string" }
+      },
+      "required": ["uid", "status", "isAfk"]
+    },
+    "Room": {
+      "title": "Room",
+      "description": "Sanctuary focus room",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string", "maxLength": 100 },
+        "code": { "type": "string", "maxLength": 20 },
+        "isPrivate": { "type": "boolean" },
+        "createdBy": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "name", "code", "isPrivate"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/users/{userId}/sessions/{sessionId}": {
+      "schema": "FocusSession",
+      "description": "User focus sessions for consistency heatmap"
+    },
+    "/presence/{userId}": {
+      "schema": "Presence",
+      "description": "Global lounge and room real-time presence indicators"
+    },
+    "/rooms/{roomId}": {
+      "schema": "Room",
+      "description": "Public and private study rooms"
+    }
+  }
+}
