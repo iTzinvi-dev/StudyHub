@@ -1,7 +1,7 @@
-# Focus OS:
+## Focus OS:
 A distraction-free, multiplayer productivity PWA designed for deep focus. 
 
-**Status:**  Ongoing 🚧
+## **Status:**  Ongoing 🚧
 
 ## 📌 Features :
 - **Focus Timer:** 
@@ -16,10 +16,10 @@ A distraction-free, multiplayer productivity PWA designed for deep focus.
 1. Clone the repo and run `npm install`.
 
 
-**Credits** : وَمَا تَوْفِيقِي إِلَّا بِاللَّهِ
+## **Credits** : وَمَا تَوْفِيقِي إِلَّا بِاللَّهِ
 
 **Opensourced**
 
-visit to see: 
+**visit to see**: 
                   https://study-hub-six-woad.vercel.app/
                   
