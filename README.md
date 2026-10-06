@@ -20,6 +20,8 @@ A distraction-free, multiplayer productivity PWA designed for deep focus.
 
 **Opensourced**
 
+## **optional mentioned**:
+                                      she <3...  يا روحي.....
 **visit to see**: 
                   https://study-hub-six-woad.vercel.app/
                   
