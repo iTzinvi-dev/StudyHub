@@ -23,7 +23,7 @@ interface SidebarProps {
   onOpenTip: () => void;
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({
+export const Sidebar: React.FC<SidebarProps> = React.memo(({
   currentTab,
   onSelectTab,
   user,
@@ -137,4 +137,4 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </div>
     </aside>
   );
-};
+});

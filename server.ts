@@ -497,6 +497,15 @@ app.get('/manifest.json', (req: Request, res: Response) => {
   });
 });
 
+// Static media assets with optimized byte-range and cache headers
+app.use('/videos', express.static(path.resolve('public/videos'), {
+  maxAge: '7d',
+  setHeaders: (res) => {
+    res.setHeader('Accept-Ranges', 'bytes');
+    res.setHeader('Cache-Control', 'public, max-age=604800, immutable');
+  }
+}));
+
 // Vite Middleware for Development and Static Serving for Production
 async function startServer() {
   const port = 3000;

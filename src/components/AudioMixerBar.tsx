@@ -8,7 +8,7 @@ interface AudioMixerBarProps {
   className?: string;
 }
 
-export const AudioMixerBar: React.FC<AudioMixerBarProps> = ({ volumes, onChange, className = '' }) => {
+export const AudioMixerBar: React.FC<AudioMixerBarProps> = React.memo(({ volumes, onChange, className = '' }) => {
   const isMuted = volumes.master === 0;
 
   const toggleMaster = () => {
@@ -79,4 +79,4 @@ export const AudioMixerBar: React.FC<AudioMixerBarProps> = ({ volumes, onChange,
       </div>
     </div>
   );
-};
+});

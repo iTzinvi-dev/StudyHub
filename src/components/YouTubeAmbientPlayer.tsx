@@ -11,7 +11,7 @@ interface YouTubeAmbientPlayerProps {
   onError?: (err: unknown) => void;
 }
 
-export const YouTubeAmbientPlayer: React.FC<YouTubeAmbientPlayerProps> = ({
+export const YouTubeAmbientPlayer: React.FC<YouTubeAmbientPlayerProps> = React.memo(({
   activeTrack,
   isPlaying,
   volume,
@@ -196,4 +196,4 @@ export const YouTubeAmbientPlayer: React.FC<YouTubeAmbientPlayerProps> = ({
       />
     </div>
   );
-};
+});

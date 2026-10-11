@@ -10,7 +10,7 @@ interface Ember {
   decay: number;
 }
 
-export const BonfireBackground: React.FC<{ className?: string }> = ({ className = '' }) => {
+export const BonfireBackground: React.FC<{ className?: string }> = React.memo(({ className = '' }) => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -138,4 +138,4 @@ export const BonfireBackground: React.FC<{ className?: string }> = ({ className 
       <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
     </div>
   );
-};
+});

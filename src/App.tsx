@@ -14,14 +14,26 @@ import { ShareProfileModal } from './components/ShareProfileModal';
 import { YouTubeAmbientPlayer } from './components/YouTubeAmbientPlayer';
 import { StudyTableBackground } from './components/StudyTableBackground';
 import { BonfireBackground } from './components/BonfireBackground';
+import { LoadingScreen } from './components/LoadingScreen';
 import { LoungeView } from './views/LoungeView';
-import { ZenModeView } from './views/ZenModeView';
-import { TrackerView } from './views/TrackerView';
-import { EnvironmentView } from './views/EnvironmentView';
-import { MentorView } from './views/MentorView';
-import { QuizzesView } from './views/QuizzesView';
-import { LeaderboardView } from './views/LeaderboardView';
-import { ProfileView } from './views/ProfileView';
+
+// React.lazy dynamic imports for heavy components
+const ZenModeView = React.lazy(() => import('./views/ZenModeView').then(m => ({ default: m.ZenModeView })));
+const TrackerView = React.lazy(() => import('./views/TrackerView').then(m => ({ default: m.TrackerView })));
+const EnvironmentView = React.lazy(() => import('./views/EnvironmentView').then(m => ({ default: m.EnvironmentView })));
+const MentorView = React.lazy(() => import('./views/MentorView').then(m => ({ default: m.MentorView })));
+const QuizzesView = React.lazy(() => import('./views/QuizzesView').then(m => ({ default: m.QuizzesView })));
+const LeaderboardView = React.lazy(() => import('./views/LeaderboardView').then(m => ({ default: m.LeaderboardView })));
+const ProfileView = React.lazy(() => import('./views/ProfileView').then(m => ({ default: m.ProfileView })));
+
+const ViewFallback: React.FC = () => (
+  <div className="flex-1 flex items-center justify-center p-8 select-none">
+    <div className="flex items-center gap-2.5 px-4 py-2 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-xl">
+      <span className="w-2.5 h-2.5 rounded-full bg-[#A3E635] animate-pulse shadow-[0_0_8px_#A3E635]" />
+      <span className="text-xs font-mono text-slate-300">Loading sanctuary module...</span>
+    </div>
+  </div>
+);
 
 import { useFirebase } from './hooks/useFirebase';
 import { createSanctuaryRoom, findRoomByCode, auth, subscribeZenModePresence, setZenModePresence } from './lib/firebase';
@@ -70,15 +82,25 @@ export const App: React.FC = () => {
   // Firebase Auth, Presence & Firestore Hook (scoped to activeRoom)
   const {
     user,
+    loading,
     isAfk,
     liveMembers,
     signInWithGoogle,
+    signOut,
     updateUser,
     logFocusSession,
     sessionRecords,
     sessionsByDate,
     loadingSessions
   } = useFirebase(GUEST_USER, activeRoom.id);
+
+  const [isOnboarded, setIsOnboarded] = useState<boolean>(() => {
+    try {
+      return !!localStorage.getItem('zenbonfire_onboarded');
+    } catch {
+      return false;
+    }
+  });
 
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(() => {
     return !localStorage.getItem('zenbonfire_onboarded');
@@ -341,8 +363,25 @@ export const App: React.FC = () => {
   const handleSaveUser = (updated: UserProfile) => {
     updateUser(updated);
     localStorage.setItem('zenbonfire_onboarded', 'true');
+    setIsOnboarded(true);
     setIsOnboardingOpen(false);
     triggerToast(`Welcome to the Sanctuary, ${updated.name}.`);
+  };
+
+  const handleGoogleSignIn = async () => {
+    try {
+      const profile = await signInWithGoogle();
+      if (profile) {
+        localStorage.setItem('zenbonfire_onboarded', 'true');
+        setIsOnboarded(true);
+        setIsOnboardingOpen(false);
+        triggerToast(`Welcome back, ${profile.name}.`);
+      }
+      return profile;
+    } catch (err) {
+      console.warn('Google sign-in notice:', err);
+      return null;
+    }
   };
 
   const triggerToast = (msg: string) => {
@@ -466,6 +505,32 @@ export const App: React.FC = () => {
     Math.round((user.todayMinutes / fourHourGoalMinutes) * 100)
   );
 
+  // Step 1: Strict Loading state while Firebase auth resolves (Eliminates Auth Flicker)
+  if (loading) {
+    return <LoadingScreen />;
+  }
+
+  // If user is unauthenticated and has not completed initial onboarding, render the Auth view directly without flashing protected content
+  if (!auth.currentUser && !isOnboarded) {
+    return (
+      <div className="min-h-screen w-screen bg-[#090D16] text-[#F8FAFC]">
+        <OnboardingModal
+          isOpen={true}
+          isFirstScreen={true}
+          currentUser={user}
+          onSave={handleSaveUser}
+          onGoogleSignIn={handleGoogleSignIn}
+        />
+        {toastMessage && (
+          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 px-5 py-2.5 rounded-full bg-gradient-to-r from-[#162032] to-[#0F172A] border border-white/20 text-[#F8FAFC] text-xs font-semibold shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-2 fade-in flex items-center gap-2 font-qurova">
+            <span className="w-2 h-2 rounded-full bg-[#0EA5E9] animate-ping" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div
       className={`flex h-screen w-screen text-[var(--zen-cream)] font-sans antialiased overflow-hidden relative isolate ${
@@ -515,39 +580,41 @@ export const App: React.FC = () => {
 
       {/* Zen Mode View (Fullscreen, hiding all bars) */}
       {isZenModeActive ? (
-        <ZenModeView
-          initialMinutes={initialMinutes}
-          timerMinutes={timerMinutes}
-          timerSeconds={timerSeconds}
-          isRunning={isRunning}
-          phaseLabel={phaseLabel}
-          fourHourProgressPercent={fourHourProgressPercent}
-          members={effectiveMembers}
-          zenMembers={zenMembers}
-          currentUser={user}
-          audioVolumes={audioVolumes}
-          activeSoundscape={activeSoundscape}
-          onSelectSoundscape={(track) => {
-            setActiveSoundscape(track);
-            localStorage.setItem('zenbonfire_soundscape_id', track.id);
-            triggerToast(`Selected: ${track.title}`);
-          }}
-          isRawVideo={isRawVideo}
-          onToggleRawVideo={() => {
-            setIsRawVideo((prev) => !prev);
-            triggerToast(isRawVideo ? 'Raw: OFF' : 'Raw: ON');
-          }}
-          onAudioChange={setAudioVolumes}
-          onToggleTimer={() => setIsRunning(!isRunning)}
-          onSkipTimer={() => {
-            setTimerMinutes(5);
-            setTimerSeconds(0);
-            setPhaseLabel('REST PHASE');
-            triggerToast('Rest Phase Initiated. Recharge your intellect.');
-          }}
-          onFinishSession={handleFinishSession}
-          onExitZen={handleExitZen}
-        />
+        <React.Suspense fallback={<LoadingScreen />}>
+          <ZenModeView
+            initialMinutes={initialMinutes}
+            timerMinutes={timerMinutes}
+            timerSeconds={timerSeconds}
+            isRunning={isRunning}
+            phaseLabel={phaseLabel}
+            fourHourProgressPercent={fourHourProgressPercent}
+            members={effectiveMembers}
+            zenMembers={zenMembers}
+            currentUser={user}
+            audioVolumes={audioVolumes}
+            activeSoundscape={activeSoundscape}
+            onSelectSoundscape={(track) => {
+              setActiveSoundscape(track);
+              localStorage.setItem('zenbonfire_soundscape_id', track.id);
+              triggerToast(`Selected: ${track.title}`);
+            }}
+            isRawVideo={isRawVideo}
+            onToggleRawVideo={() => {
+              setIsRawVideo((prev) => !prev);
+              triggerToast(isRawVideo ? 'Raw: OFF' : 'Raw: ON');
+            }}
+            onAudioChange={setAudioVolumes}
+            onToggleTimer={() => setIsRunning(!isRunning)}
+            onSkipTimer={() => {
+              setTimerMinutes(5);
+              setTimerSeconds(0);
+              setPhaseLabel('REST PHASE');
+              triggerToast('Rest Phase Initiated. Recharge your intellect.');
+            }}
+            onFinishSession={handleFinishSession}
+            onExitZen={handleExitZen}
+          />
+        </React.Suspense>
       ) : (
         /* Regular 6-Tab View */
         <div className="flex w-full h-full relative overflow-hidden">
@@ -574,104 +641,112 @@ export const App: React.FC = () => {
             onOpenTip={handleResetCurrentTip}
           />
 
-          {/* Current Tab Screen View with Liquid Glass */}
+          {/* Current Tab Screen View with Liquid Glass & Fluid AnimatePresence Transitions */}
           <div className="flex-1 flex flex-col h-full overflow-hidden relative z-10">
-            <div
-              key={currentTab}
-              className="w-full h-full flex flex-col overflow-hidden"
-            >
-                {currentTab === 'lounge' && (
-                  <LoungeView
-                    user={user}
-                    isAfk={isAfk}
-                    backgroundScene={backgroundScene}
-                    activeRoom={activeRoom}
-                    members={effectiveMembers}
-                    currentTab={currentTab}
-                    onSelectTab={handleSelectTab}
-                    initialMinutes={initialMinutes}
-                    timerMinutes={timerMinutes}
-                    timerSeconds={timerSeconds}
-                    isRunning={isRunning}
-                    phaseLabel={phaseLabel}
-                    fourHourProgressPercent={fourHourProgressPercent}
-                    audioVolumes={audioVolumes}
-                    onAudioChange={setAudioVolumes}
-                    onOpenPlanModal={() => setIsPlanModalOpen(true)}
-                    onEnterZenMode={handleEnterZenMode}
-                    onResetTimer={handleResetTimer}
-                    onCreateRoom={handleCreateRoom}
-                    onJoinRoom={handleJoinRoom}
-                    onUpdateStatus={(newStatus) => {
-                      updateUser({ ...user, status: newStatus });
-                      triggerToast(`Status updated to: [${newStatus}]`);
-                    }}
-                  />
-                )}
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={currentTab}
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.22, ease: [0.16, 1, 0.3, 1] }}
+                className="w-full h-full flex flex-col overflow-hidden"
+              >
+                <React.Suspense fallback={<ViewFallback />}>
+                  {currentTab === 'lounge' && (
+                    <LoungeView
+                      user={user}
+                      isAfk={isAfk}
+                      backgroundScene={backgroundScene}
+                      activeRoom={activeRoom}
+                      members={effectiveMembers}
+                      currentTab={currentTab}
+                      onSelectTab={handleSelectTab}
+                      initialMinutes={initialMinutes}
+                      timerMinutes={timerMinutes}
+                      timerSeconds={timerSeconds}
+                      isRunning={isRunning}
+                      phaseLabel={phaseLabel}
+                      fourHourProgressPercent={fourHourProgressPercent}
+                      audioVolumes={audioVolumes}
+                      onAudioChange={setAudioVolumes}
+                      onOpenPlanModal={() => setIsPlanModalOpen(true)}
+                      onEnterZenMode={handleEnterZenMode}
+                      onResetTimer={handleResetTimer}
+                      onCreateRoom={handleCreateRoom}
+                      onJoinRoom={handleJoinRoom}
+                      onUpdateStatus={(newStatus) => {
+                        updateUser({ ...user, status: newStatus });
+                        triggerToast(`Status updated to: [${newStatus}]`);
+                      }}
+                    />
+                  )}
 
-                {currentTab === 'tracker' && (
-                  <TrackerView user={user} />
-                )}
+                  {currentTab === 'tracker' && (
+                    <TrackerView user={user} />
+                  )}
 
-                {currentTab === 'environment' && (
-                  <EnvironmentView
-                    volumes={audioVolumes}
-                    onChange={setAudioVolumes}
-                    activeSoundscape={activeSoundscape}
-                    isYouTubePlaying={isYouTubePlaying}
-                    youTubeVolume={youTubeVolume}
-                    isYouTubeMuted={isYouTubeMuted}
-                    onToggleYouTubePlay={() => setIsYouTubePlaying((prev) => !prev)}
-                    onSetYouTubeVolume={(vol) => {
-                      setYouTubeVolume(vol);
-                      localStorage.setItem('zenbonfire_yt_volume', vol.toString());
-                    }}
-                    onToggleYouTubeMute={() => setIsYouTubeMuted((prev) => !prev)}
-                    onSelectSoundscape={(track) => {
-                      setActiveSoundscape(track);
-                      localStorage.setItem('zenbonfire_soundscape_id', track.id);
-                      triggerToast(`Selected: ${track.title}`);
-                    }}
-                    onSetCustomYouTubeUrl={(url) => {
-                      const customTrack: SoundscapeTrack = {
-                        id: 'custom-' + Date.now(),
-                        title: 'Custom Ambient Stream',
-                        category: 'Rain & Storm',
-                        youtubeUrl: url,
-                        description: 'Custom YouTube ambient audio stream playing in background.',
-                        badge: 'Custom URL',
-                        durationLabel: 'Custom'
-                      };
-                      setActiveSoundscape(customTrack);
-                      triggerToast('Custom YouTube stream active');
-                    }}
-                  />
-                )}
+                  {currentTab === 'environment' && (
+                    <EnvironmentView
+                      volumes={audioVolumes}
+                      onChange={setAudioVolumes}
+                      activeSoundscape={activeSoundscape}
+                      isYouTubePlaying={isYouTubePlaying}
+                      youTubeVolume={youTubeVolume}
+                      isYouTubeMuted={isYouTubeMuted}
+                      onToggleYouTubePlay={() => setIsYouTubePlaying((prev) => !prev)}
+                      onSetYouTubeVolume={(vol) => {
+                        setYouTubeVolume(vol);
+                        localStorage.setItem('zenbonfire_yt_volume', vol.toString());
+                      }}
+                      onToggleYouTubeMute={() => setIsYouTubeMuted((prev) => !prev)}
+                      onSelectSoundscape={(track) => {
+                        setActiveSoundscape(track);
+                        localStorage.setItem('zenbonfire_soundscape_id', track.id);
+                        triggerToast(`Selected: ${track.title}`);
+                      }}
+                      onSetCustomYouTubeUrl={(url) => {
+                        const customTrack: SoundscapeTrack = {
+                          id: 'custom-' + Date.now(),
+                          title: 'Custom Ambient Stream',
+                          category: 'Rain & Storm',
+                          youtubeUrl: url,
+                          description: 'Custom YouTube ambient audio stream playing in background.',
+                          badge: 'Custom URL',
+                          durationLabel: 'Custom'
+                        };
+                        setActiveSoundscape(customTrack);
+                        triggerToast('Custom YouTube stream active');
+                      }}
+                    />
+                  )}
 
-                {currentTab === 'mentor' && <MentorView />}
+                  {currentTab === 'mentor' && <MentorView />}
 
-                {currentTab === 'quizzes' && <QuizzesView />}
+                  {currentTab === 'quizzes' && <QuizzesView />}
 
-                {currentTab === 'leaderboard' && (
-                  <LeaderboardView currentUser={user} />
-                )}
+                  {currentTab === 'leaderboard' && (
+                    <LeaderboardView currentUser={user} />
+                  )}
 
-                {currentTab === 'profile' && (
-                  <ProfileView
-                    user={user}
-                    themeMode={themeMode}
-                    backgroundScene={backgroundScene}
-                    sessionsByDate={sessionsByDate}
-                    sessionRecords={sessionRecords}
-                    loadingSessions={loadingSessions}
-                    onUpdateUser={updateUser}
-                    onOpenShareModal={() => setIsShareModalOpen(true)}
-                    onOpenLogin={() => setIsOnboardingOpen(true)}
-                    onThemeModeChange={handleThemeModeChange}
-                    onBackgroundSceneChange={handleBackgroundSceneChange}
-                  />
-                )}
-            </div>
+                  {currentTab === 'profile' && (
+                    <ProfileView
+                      user={user}
+                      themeMode={themeMode}
+                      backgroundScene={backgroundScene}
+                      sessionsByDate={sessionsByDate}
+                      sessionRecords={sessionRecords}
+                      loadingSessions={loadingSessions}
+                      onUpdateUser={updateUser}
+                      onOpenShareModal={() => setIsShareModalOpen(true)}
+                      onOpenLogin={() => setIsOnboardingOpen(true)}
+                      onThemeModeChange={handleThemeModeChange}
+                      onBackgroundSceneChange={handleBackgroundSceneChange}
+                    />
+                  )}
+                </React.Suspense>
+              </motion.div>
+            </AnimatePresence>
 
             {/* Small pop up tips for each section on first click */}
             <SectionTip
@@ -697,7 +772,7 @@ export const App: React.FC = () => {
         isOpen={isOnboardingOpen}
         currentUser={user}
         onSave={handleSaveUser}
-        onGoogleSignIn={signInWithGoogle}
+        onGoogleSignIn={handleGoogleSignIn}
         onClose={() => setIsOnboardingOpen(false)}
       />
 

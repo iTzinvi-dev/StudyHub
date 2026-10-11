@@ -24,7 +24,7 @@ interface StudyTableBackgroundProps {
   showLamp?: boolean;
 }
 
-export const StudyTableBackground: React.FC<StudyTableBackgroundProps> = ({
+export const StudyTableBackground: React.FC<StudyTableBackgroundProps> = React.memo(({
   className = '',
   darkness = 'normal',
   showLamp = true
@@ -208,4 +208,4 @@ export const StudyTableBackground: React.FC<StudyTableBackgroundProps> = ({
       <canvas ref={canvasRef} className="absolute inset-0 pointer-events-none" />
     </div>
   );
-};
+});
