@@ -3,6 +3,7 @@ import type { Request, Response } from 'express';
 import { createServer as createViteServer } from 'vite';
 import { GoogleGenAI } from '@google/genai';
 import fs from 'fs';
+import path from 'path';
 
 const app = express();
 app.use(express.json());
@@ -29,7 +30,7 @@ if (fs.existsSync('.env')) {
 }
 
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const ai = new GoogleGenAI({ apiKey: GEMINI_API_KEY });
+const ai = new GoogleGenAI(GEMINI_API_KEY ? { apiKey: GEMINI_API_KEY } : {});
 
 // Multi-purpose Universal AI Mentor System Prompt
 const MENTOR_SYSTEM_PROMPT = `You are the StudyHub AI Mentor — a versatile, deeply knowledgeable, multi-purpose learning companion and universal tutor for StudyHub (a modern, deliberate focus sanctuary crafted in Apple Space Black & Electric Azure liquid glass).
@@ -80,7 +81,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     (res as any).flushHeaders();
   }
 
-  const modelsToTry = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
+  const modelsToTry = ['gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
 
   // Construct conversation contents for Gemini
   const contents: any[] = [];
@@ -186,7 +187,7 @@ Each object in the array MUST strictly follow this exact schema:
   "explanation": "Clear explanation of why this answer is correct"
 }`;
 
-  const modelsToTry = ['gemini-3.8-flash', 'gemini-flash-latest', 'gemini-3.1-flash-lite'];
+  const modelsToTry = ['gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
   let questionsArray: any[] = [];
 
   for (const model of modelsToTry) {
@@ -496,19 +497,25 @@ app.get('/manifest.json', (req: Request, res: Response) => {
   });
 });
 
-// Vite Middleware for Development
+// Vite Middleware for Development and Static Serving for Production
 async function startServer() {
   const port = 3000;
 
-  const vite = await createViteServer({
-    server: { middlewareMode: true },
-    appType: 'spa'
-  });
-
-  app.use(vite.middlewares);
+  if (process.env.NODE_ENV === 'production' && fs.existsSync(path.resolve('dist'))) {
+    app.use(express.static(path.resolve('dist')));
+    app.get('*', (_req: Request, res: Response) => {
+      res.sendFile(path.resolve('dist', 'index.html'));
+    });
+  } else {
+    const vite = await createViteServer({
+      server: { middlewareMode: true },
+      appType: 'spa'
+    });
+    app.use(vite.middlewares);
+  }
 
   app.listen(port, '0.0.0.0', () => {
-    console.log(`StudyHub full-stack server running on http://localhost:${port}`);
+    console.log(`StudyHub full-stack server running on http://0.0.0.0:${port}`);
   });
 }
 

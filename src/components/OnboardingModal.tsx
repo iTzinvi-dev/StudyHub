@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { UserProfile, AvatarId } from '../types';
 import { AVATAR_LIST, AvatarIcon } from '../utils/avatars';
@@ -28,6 +28,13 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   const [avatarId, setAvatarId] = useState<AvatarId>(currentUser.avatarId || 'boy1');
   const [status, setStatus] = useState(currentUser.status || 'Deep Focus');
   const [signingIn, setSigningIn] = useState(false);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  useEffect(() => {
+    if (isOpen && videoRef.current) {
+      videoRef.current.play().catch(() => {});
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (currentUser.name && currentUser.name !== 'Focus Scholar') {
@@ -87,19 +94,32 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-[#090D16] select-none overflow-hidden font-qurova">
-      {/* 1. Instant Lightweight Ambient Background (Zero lag, pure CSS GPU accelerated) */}
-      <div className="absolute inset-0 pointer-events-none z-0 overflow-hidden">
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-[radial-gradient(circle,rgba(14,165,233,0.18)_0%,rgba(14,165,233,0.04)_45%,transparent_70%)] rounded-full blur-2xl" />
-        <div className="absolute bottom-1/4 left-1/2 -translate-x-1/2 translate-y-1/2 w-[450px] h-[450px] bg-[radial-gradient(circle,rgba(245,158,11,0.12)_0%,rgba(245,158,11,0.02)_50%,transparent_70%)] rounded-full blur-2xl" />
-        <div className="absolute inset-0 bg-gradient-to-t from-[#090D16] via-transparent to-[#090D16]/80" />
-      </div>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-transparent select-none overflow-hidden font-qurova">
+      {/* 1. Full-screen Background Video */}
+      <video
+        ref={videoRef}
+        autoPlay
+        loop
+        muted
+        playsInline
+        className="fixed inset-0 w-full h-full object-cover z-0 pointer-events-none"
+        src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260406_094145_4a271a6c-3869-4f1c-8aa7-aeb0cb227994.mp4"
+      />
+
+      {/* 2. Bottom Blur Overlay (no gradient darkening, only blur masked to bottom) */}
+      <div
+        className="fixed inset-0 w-full h-full backdrop-blur-xl pointer-events-none z-[1]"
+        style={{
+          WebkitMaskImage: 'linear-gradient(to top, black 0%, transparent 45%)',
+          maskImage: 'linear-gradient(to top, black 0%, transparent 45%)'
+        }}
+      />
 
       <motion.div
         initial={{ opacity: 0, scale: 0.96, y: 10 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
-        className="relative z-10 w-full max-w-sm sm:max-w-md p-7 sm:p-9 rounded-3xl bg-white/[0.06] border border-white/20 shadow-[0_24px_80px_rgba(0,0,0,0.7),inset_0_1px_2px_rgba(255,255,255,0.2)] backdrop-blur-2xl text-white font-qurova"
+        className="relative z-10 w-full max-w-sm sm:max-w-md p-7 sm:p-9 rounded-3xl liquid-glass-card border border-white/20 shadow-[0_24px_80px_rgba(0,0,0,0.65)] backdrop-blur-2xl text-white font-qurova"
       >
         {!isFirstScreen && onClose && (
           <button
@@ -167,7 +187,7 @@ export const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   <div className="absolute inset-0 flex items-center">
                     <div className="w-full border-t border-white/10" />
                   </div>
-                  <span className="relative px-3 bg-[#0E1524] text-[10px] uppercase tracking-widest text-slate-400 font-mono">
+                  <span className="relative px-3 py-0.5 rounded-full bg-white/[0.08] backdrop-blur-md border border-white/10 text-[10px] uppercase tracking-widest text-slate-300 font-mono">
                     or
                   </span>
                 </div>
