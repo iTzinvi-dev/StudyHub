@@ -80,9 +80,14 @@ export const App: React.FC = () => {
     loadingSessions
   } = useFirebase(GUEST_USER, activeRoom.id);
 
-  const [isOnboardingOpen, setIsOnboardingOpen] = useState(() => {
-    return !localStorage.getItem('zenbonfire_onboarded');
+  const [isOnboarded, setIsOnboarded] = useState<boolean>(() => {
+    try {
+      return !!localStorage.getItem('zenbonfire_onboarded');
+    } catch {
+      return false;
+    }
   });
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
   // Navigation tab with localStorage persistence
   const [currentTab, setCurrentTab] = useState<TabType>(() => {
@@ -144,14 +149,22 @@ export const App: React.FC = () => {
     });
 
     // 2. Add real-time peers from Firestore presence without duplicating self
+    const now = Date.now();
     liveMembers.forEach((m) => {
       if (m.id === currentUid || m.isSelf) {
         // Self is already accurately represented
       } else {
-        memberMap.set(m.id, {
-          ...m,
-          isSelf: false
-        });
+        const lastSeenMs = m.lastSeen ? new Date(m.lastSeen).getTime() : 0;
+        const isAwayLongTime = m.isAfk
+          ? (!lastSeenMs || (now - lastSeenMs) > 2 * 60 * 1000)
+          : (lastSeenMs > 0 && (now - lastSeenMs) > 3 * 60 * 1000);
+
+        if (!isAwayLongTime) {
+          memberMap.set(m.id, {
+            ...m,
+            isSelf: false
+          });
+        }
       }
     });
 
@@ -329,12 +342,24 @@ export const App: React.FC = () => {
     };
   }, [isRunning]);
 
-  // Save user profile to Firebase & localStorage
+  // Save user profile to Firebase & localStorage and complete onboarding
   const handleSaveUser = (updated: UserProfile) => {
     updateUser(updated);
     localStorage.setItem('zenbonfire_onboarded', 'true');
+    setIsOnboarded(true);
     setIsOnboardingOpen(false);
     triggerToast(`Welcome to the Sanctuary, ${updated.name}.`);
+  };
+
+  const handleGoogleSignInFromAuth = async () => {
+    const profile = await signInWithGoogle();
+    if (profile) {
+      localStorage.setItem('zenbonfire_onboarded', 'true');
+      setIsOnboarded(true);
+      setIsOnboardingOpen(false);
+      triggerToast(`Welcome back, ${profile.name}.`);
+    }
+    return profile;
   };
 
   const triggerToast = (msg: string) => {
@@ -457,6 +482,27 @@ export const App: React.FC = () => {
     100,
     Math.round((user.todayMinutes / fourHourGoalMinutes) * 100)
   );
+
+  // First screen for new / unauthenticated users: Auth Page
+  if (!isOnboarded && !auth.currentUser) {
+    return (
+      <div className="min-h-screen w-screen bg-[#090D16] text-[#F8FAFC]">
+        <OnboardingModal
+          isOpen={true}
+          isFirstScreen={true}
+          currentUser={user}
+          onSave={handleSaveUser}
+          onGoogleSignIn={handleGoogleSignInFromAuth}
+        />
+        {toastMessage && (
+          <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 px-5 py-2.5 rounded-full bg-gradient-to-r from-[#162032] to-[#0F172A] border border-white/20 text-[#F8FAFC] text-xs font-semibold shadow-2xl backdrop-blur-xl animate-in slide-in-from-bottom-2 fade-in flex items-center gap-2 font-qurova">
+            <span className="w-2 h-2 rounded-full bg-[#0EA5E9] animate-ping" />
+            <span>{toastMessage}</span>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
     <div
@@ -689,7 +735,7 @@ export const App: React.FC = () => {
         isOpen={isOnboardingOpen}
         currentUser={user}
         onSave={handleSaveUser}
-        onGoogleSignIn={signInWithGoogle}
+        onGoogleSignIn={handleGoogleSignInFromAuth}
         onClose={() => setIsOnboardingOpen(false)}
       />
 

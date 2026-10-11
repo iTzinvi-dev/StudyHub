@@ -577,15 +577,17 @@ export function subscribeRoomPresence(
       const data = d.data();
       const memberRoom = data.roomId || 'public_lounge';
       const lastSeenMs = data.lastSeen ? new Date(data.lastSeen).getTime() : 0;
-      // Filter out stale presences inactive for > 25 minutes
-      const isRecent = !lastSeenMs || (now - lastSeenMs) < 25 * 60 * 1000;
+      // Remove users who stay away a long time (inactive for > 3 min, or afk for > 2 min)
+      const isAwayLongTime = data.isAfk
+        ? (!lastSeenMs || (now - lastSeenMs) > 2 * 60 * 1000)
+        : (lastSeenMs > 0 && (now - lastSeenMs) > 3 * 60 * 1000);
 
       const matchesRoom =
         roomId === 'public_lounge'
           ? (memberRoom === 'public_lounge' || !data.roomId)
           : memberRoom === roomId;
 
-      if (matchesRoom && isRecent) {
+      if (matchesRoom && !isAwayLongTime) {
         list.push({
           id: data.uid,
           name: data.name || 'Focus Scholar',

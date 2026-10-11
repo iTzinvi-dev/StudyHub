@@ -32,6 +32,9 @@ export function useFirebase(defaultUser: UserProfile, activeRoomId: string = 'pu
   const activeRoomIdRef = useRef(activeRoomId);
   activeRoomIdRef.current = activeRoomId;
 
+  const userRef = useRef(user);
+  userRef.current = user;
+
   // 1. Validate connection on boot
   useEffect(() => {
     testFirebaseConnection();
@@ -106,19 +109,20 @@ export function useFirebase(defaultUser: UserProfile, activeRoomId: string = 'pu
     const currentUid = auth.currentUser?.uid || user.id;
 
     const syncPresence = (hiddenState: boolean) => {
-      const statusText = hiddenState ? '[AFK / Away]' : (user.status || '[Studying]');
+      const u = userRef.current;
+      const statusText = hiddenState ? '[AFK / Away]' : (u.status || '[Studying]');
       updatePresence(
         currentUid,
         statusText,
         hiddenState,
         activeRoomIdRef.current,
-        user.name,
-        user.avatarId,
+        u.name,
+        u.avatarId,
         {
-          todayMinutes: user.todayMinutes,
-          streak: user.streak,
-          totalFocusHours: user.totalFocusHours,
-          currentTask: user.status
+          todayMinutes: u.todayMinutes,
+          streak: u.streak,
+          totalFocusHours: u.totalFocusHours,
+          currentTask: u.status
         }
       );
     };
@@ -136,12 +140,12 @@ export function useFirebase(defaultUser: UserProfile, activeRoomId: string = 'pu
     // Immediate presence update
     syncPresence(isAfk);
 
-    // Heartbeat every 35s to keep lastSeen active in room
+    // Heartbeat every 40s to keep lastSeen active in room
     const heartbeatInterval = setInterval(() => {
       if (document.visibilityState !== 'hidden') {
         syncPresence(false);
       }
-    }, 35000);
+    }, 40000);
 
     document.addEventListener('visibilitychange', handleVisibilityState);
     window.addEventListener('beforeunload', handleBeforeUnload);
@@ -151,7 +155,7 @@ export function useFirebase(defaultUser: UserProfile, activeRoomId: string = 'pu
       document.removeEventListener('visibilitychange', handleVisibilityState);
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [user.id, user.name, user.avatarId, user.status, user.todayMinutes, user.streak, user.totalFocusHours, isAfk, activeRoomId]);
+  }, [user.id, isAfk, activeRoomId]);
 
   // 4. Update presence on room change
   useEffect(() => {

@@ -57,33 +57,46 @@ export const StudyTableBackground: React.FC<StudyTableBackgroundProps> = ({
 
     // Outside rain streaks falling in the dusk through the upper window pane
     const streaks: RainStreak[] = [];
-    const streakCount = Math.floor(width / 26);
+    const streakCount = Math.min(22, Math.floor(width / 45));
     for (let i = 0; i < streakCount; i++) {
       streaks.push({
         x: Math.random() * width,
         y: Math.random() * height * 0.48,
-        speed: Math.random() * 8 + 10,
-        length: Math.random() * 22 + 12,
-        opacity: Math.random() * 0.16 + 0.08
+        speed: Math.random() * 6 + 8,
+        length: Math.random() * 18 + 10,
+        opacity: Math.random() * 0.14 + 0.06
       });
     }
 
     // Condensation and sliding rivulets on the window pane above desk sill
     const droplets: Droplet[] = [];
-    const dropletCount = 38;
+    const dropletCount = 18;
     for (let i = 0; i < dropletCount; i++) {
       droplets.push({
         x: Math.random() * width,
         y: Math.random() * height * 0.47,
-        radius: Math.random() * 2.0 + 1.0,
-        speed: Math.random() < 0.25 ? Math.random() * 1.4 + 0.5 : Math.random() * 0.12 + 0.02,
-        trailLength: Math.random() * 24 + 10,
-        alpha: Math.random() * 0.38 + 0.18,
+        radius: Math.random() * 1.8 + 0.9,
+        speed: Math.random() < 0.25 ? Math.random() * 1.2 + 0.4 : Math.random() * 0.1 + 0.02,
+        trailLength: Math.random() * 20 + 8,
+        alpha: Math.random() * 0.32 + 0.14,
         wobble: Math.random() * Math.PI * 2
       });
     }
 
-    const render = () => {
+    let lastFrameTime = 0;
+    const render = (time: number) => {
+      // Pause drawing when tab is hidden or throttle to 30fps to avoid burning GPU
+      if (document.hidden) {
+        animId = requestAnimationFrame(render);
+        return;
+      }
+
+      if (time - lastFrameTime < 32) {
+        animId = requestAnimationFrame(render);
+        return;
+      }
+      lastFrameTime = time;
+
       ctx.clearRect(0, 0, width, height);
 
       // 1. Outside falling rain streaks
@@ -135,14 +148,14 @@ export const StudyTableBackground: React.FC<StudyTableBackgroundProps> = ({
         if (d.y > height * 0.48) {
           d.y = -10;
           d.x = Math.random() * width;
-          d.speed = Math.random() < 0.25 ? Math.random() * 1.4 + 0.5 : Math.random() * 0.12 + 0.02;
+          d.speed = Math.random() < 0.25 ? Math.random() * 1.2 + 0.4 : Math.random() * 0.1 + 0.02;
         }
       }
 
       animId = requestAnimationFrame(render);
     };
 
-    render();
+    animId = requestAnimationFrame(render);
 
     return () => {
       cancelAnimationFrame(animId);

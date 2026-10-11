@@ -338,12 +338,22 @@ export const MemberListDrawer: React.FC<MemberListDrawerProps> = ({
     return members.filter((m) => m.id !== currentUid && !m.isSelf);
   }, [members, currentUid]);
 
-  const activePeers = useMemo(() => peerMembers.filter((m) => !m.isAfk), [peerMembers]);
-  const afkPeers = useMemo(() => peerMembers.filter((m) => m.isAfk), [peerMembers]);
+  const nonStalePeers = useMemo(() => {
+    const now = Date.now();
+    return peerMembers.filter((m) => {
+      const lastSeenMs = m.lastSeen ? new Date(m.lastSeen).getTime() : 0;
+      if (m.isAfk && (!lastSeenMs || now - lastSeenMs > 2 * 60 * 1000)) return false;
+      if (lastSeenMs && now - lastSeenMs > 3 * 60 * 1000) return false;
+      return true;
+    });
+  }, [peerMembers]);
+
+  const activePeers = useMemo(() => nonStalePeers.filter((m) => !m.isAfk), [nonStalePeers]);
+  const afkPeers = useMemo(() => nonStalePeers.filter((m) => m.isAfk), [nonStalePeers]);
   const sortedPeers = useMemo(() => [...activePeers, ...afkPeers], [activePeers, afkPeers]);
 
   // Total people in the room = peers + 1 (the user themselves)
-  const totalInRoom = 1 + peerMembers.length;
+  const totalInRoom = 1 + nonStalePeers.length;
   const activeInRoom = (isCurrentUserAfk ? 0 : 1) + activePeers.length;
   const afkInRoom = (isCurrentUserAfk ? 1 : 0) + afkPeers.length;
 
@@ -379,7 +389,19 @@ export const MemberListDrawer: React.FC<MemberListDrawerProps> = ({
           <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/50 to-transparent pointer-events-none" />
 
           <div className="relative">
-            <Users className="w-5 h-5 sm:w-5 sm:h-5 text-[#38BDF8] group-hover:scale-110 transition-transform" />
+            <motion.div
+              animate={{
+                scale: [1, 1.1, 1],
+                rotate: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 3,
+                repeat: Infinity,
+                ease: 'easeInOut'
+              }}
+            >
+              <Users className="w-5 h-5 sm:w-5 sm:h-5 text-[#38BDF8] group-hover:scale-110 transition-transform" />
+            </motion.div>
             <span
               className={`absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full border-2 border-[#090D16] ${
                 isCurrentUserAfk ? 'bg-rose-400 shadow-[0_0_6px_#f43f5e]' : 'bg-emerald-400 shadow-[0_0_8px_#34d399] animate-pulse'
@@ -388,7 +410,7 @@ export const MemberListDrawer: React.FC<MemberListDrawerProps> = ({
           </div>
 
           <span className="text-xs font-qurov font-bold text-white tabular-nums tracking-tight">
-            {totalInRoom}
+            {activeInRoom}
           </span>
 
           <span className="text-[9px] uppercase tracking-wider text-slate-300 font-qurov scale-95 group-hover:text-white transition-colors">

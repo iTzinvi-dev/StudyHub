@@ -2,7 +2,7 @@
 
 @font-face {
   font-family: 'Plus Jakarta Sans';
-  src: local('Plus Jakarta Sans'), url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+  src: local('Plus Jakarta Sans'), local('Inter'), -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   font-weight: 300 800;
   font-style: normal;
   font-display: swap;
@@ -10,7 +10,7 @@
 
 @font-face {
   font-family: 'Qurov';
-  src: local('Qurov'), local('Qurova'), local('Plus Jakarta Sans'), -apple-system, BlinkMacSystemFont, 'SF Pro Display';
+  src: local('Qurov'), local('Qurova'), local('Plus Jakarta Sans'), local('Inter'), -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
   font-weight: 200 900;
   font-style: normal;
   font-display: swap;
@@ -18,7 +18,7 @@
 
 @font-face {
   font-family: 'Qurova';
-  src: local('Qurova'), local('Qurov'), local('Plus Jakarta Sans'), -apple-system, BlinkMacSystemFont, 'SF Pro Display';
+  src: local('Qurova'), local('Qurov'), local('Plus Jakarta Sans'), local('Inter'), -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
   font-weight: 200 900;
   font-style: normal;
   font-display: swap;
@@ -94,11 +94,10 @@
     letter-spacing: -0.015em;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    transition: background-color 0.35s ease, color 0.35s ease;
+    transition: background-color 0.3s ease, color 0.3s ease;
     background-image: 
       radial-gradient(ellipse 85% 55% at 50% -15%, rgba(14, 165, 233, 0.12), transparent 70%),
       radial-gradient(ellipse 65% 45% at 50% 120%, rgba(99, 102, 241, 0.08), transparent 70%);
-    background-attachment: fixed;
   }
 
   h1, h2, h3, h4, .font-serif, .font-handwritten-serif {
@@ -173,8 +172,9 @@
     inset 0 -1.5px 2px 0 rgba(0, 0, 0, 0.35),
     0 24px 64px -12px rgba(0, 0, 0, 0.65),
     0 0 32px -4px rgba(56, 189, 248, 0.14);
-  backdrop-filter: blur(28px) saturate(190%);
-  -webkit-backdrop-filter: blur(28px) saturate(190%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transform: translateZ(0);
   transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
@@ -195,8 +195,9 @@
     inset 0 -1px 1px 0 rgba(0, 0, 0, 0.35),
     0 20px 48px -12px rgba(0, 0, 0, 0.65),
     0 0 24px -6px rgba(14, 165, 233, 0.12);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transform: translateZ(0);
 }
 
 .liquid-glass-subtle {
@@ -205,8 +206,8 @@
   box-shadow: 
     inset 0 1px 1px 0 rgba(255, 255, 255, 0.1),
     0 16px 36px -10px rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
 }
 
 .liquid-glass-card {
@@ -217,8 +218,9 @@
     inset 0 1px 2px 0 rgba(255, 255, 255, 0.15),
     0 24px 50px -12px rgba(0, 0, 0, 0.65),
     0 0 24px -4px rgba(14, 165, 233, 0.1);
-  backdrop-filter: blur(24px) saturate(180%);
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  transform: translateZ(0);
   transition: all 0.28s cubic-bezier(0.16, 1, 0.3, 1);
 }
 

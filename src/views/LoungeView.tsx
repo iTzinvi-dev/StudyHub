@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
+import { motion } from 'framer-motion';
 import { UserProfile, Room, RoomMember, AudioVolumes, BackgroundSceneId, TabType } from '../types';
 import { AvatarIcon } from '../utils/avatars';
 import { AudioMixerBar } from '../components/AudioMixerBar';
@@ -91,15 +92,16 @@ export const LoungeView: React.FC<LoungeViewProps> = ({
   const [isSanctuaryView, setIsSanctuaryView] = useState(false);
   const [isMemberListOpen, setIsMemberListOpen] = useState(false);
 
-  const loungeNavTabs: { tab: TabType; label: string; icon: React.ReactNode }[] = [
-    { tab: 'lounge', label: 'Global Lounge', icon: <Home className="w-3.5 h-3.5" /> },
-    { tab: 'tracker', label: 'Routine Tracker', icon: <CalendarCheck className="w-3.5 h-3.5" /> },
-    { tab: 'environment', label: 'Environment', icon: <Sliders className="w-3.5 h-3.5" /> },
-    { tab: 'mentor', label: 'AI Mentor', icon: <Sparkles className="w-3.5 h-3.5" /> },
-    { tab: 'quizzes', label: 'Test', icon: <Brain className="w-3.5 h-3.5" /> },
-    { tab: 'leaderboard', label: 'Leaderboard', icon: <Trophy className="w-3.5 h-3.5" /> },
-    { tab: 'profile', label: 'Profile Vault', icon: <User className="w-3.5 h-3.5" /> }
-  ];
+  // Active souls count: only users currently studying and not away for long time (> 5 min)
+  const activeSoulsCount = useMemo(() => {
+    const now = Date.now();
+    return members.filter((m) => {
+      if (m.isAfk) return false;
+      const lastSeenMs = m.lastSeen ? new Date(m.lastSeen).getTime() : 0;
+      if (lastSeenMs && now - lastSeenMs > 5 * 60 * 1000) return false;
+      return true;
+    }).length;
+  }, [members]);
 
   const handleCopyRoomCode = () => {
     navigator.clipboard.writeText(activeRoom.code);
@@ -209,53 +211,48 @@ export const LoungeView: React.FC<LoungeViewProps> = ({
         </div>
       </header>
 
-      {/* Global Lounge Navigation Tabs Bar (Pure Liquid Glass) */}
-      {onSelectTab && (
-        <nav
-          className="relative z-20 flex items-center gap-1.5 p-1 rounded-2xl bg-white/[0.04] backdrop-blur-2xl border border-white/10 shadow-[0_4px_24px_rgba(0,0,0,0.3),inset_0_1px_1px_rgba(255,255,255,0.15)] overflow-x-auto max-w-full custom-scrollbar my-2"
-          aria-label="Sanctuary Navigation Tabs"
-        >
-          {loungeNavTabs.map((item) => {
-            const isActive = currentTab === item.tab;
-            return (
-              <button
-                key={item.tab}
-                type="button"
-                onClick={() => onSelectTab(item.tab)}
-                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-qurov transition-all duration-200 shrink-0 cursor-pointer touch-manipulation ${
-                  isActive
-                    ? 'bg-[#0284C7]/80 text-white font-semibold border border-white/30 shadow-[0_0_16px_rgba(14,165,233,0.5),inset_0_1px_2px_rgba(255,255,255,0.4)]'
-                    : 'text-slate-300 hover:text-white hover:bg-white/[0.07] border border-transparent'
-                }`}
-                title={item.label}
-              >
-                {item.icon}
-                <span className="font-handwritten-serif text-sm">{item.label}</span>
-              </button>
-            );
-          })}
-        </nav>
-      )}
-
-      {/* Mobile Quick Souls Counter Bar */}
-      <div className="flex lg:hidden items-center justify-between p-3 rounded-2xl bg-white/[0.04] border border-white/10 backdrop-blur-xl shadow-lg my-1 relative z-10">
+      {/* The Souls in Room Interactive Tab Section (Pure Liquid Glass) */}
+      <div className="relative z-20 my-2 w-full">
         <button
           type="button"
           onClick={() => setIsMemberListOpen(true)}
-          className="flex items-center gap-2.5 text-left cursor-pointer touch-manipulation w-full"
+          className="w-full flex items-center justify-between p-3.5 sm:p-4 rounded-2xl bg-white/[0.04] hover:bg-white/[0.08] border border-white/12 hover:border-white/25 shadow-[0_8px_32px_rgba(0,0,0,0.35),inset_0_1px_1px_rgba(255,255,255,0.15)] backdrop-blur-xl transition-all duration-300 cursor-pointer touch-manipulation group text-left"
+          title="Room Presence & Activity Tracker · Tap to view who is in the room and what they are doing"
         >
-          <div className="relative">
-            <AvatarIcon id={user.avatarId} className="w-8 h-8" />
-            <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-[#090D16] ${isAfk ? 'bg-rose-500' : 'bg-emerald-400'}`} />
-          </div>
-          <div className="flex-1 min-w-0">
-            <div className="flex items-center justify-between">
-              <span className="text-sm font-handwritten-serif text-white font-semibold">The Souls in Room</span>
-              <span className="text-xs text-[#38BDF8] font-qurov font-medium">{members.length} {members.length === 1 ? 'Soul' : 'Souls'} · View All →</span>
+          {/* Left: Framer motion animated icon + The Souls in Room + (underneath) You: [notes] */}
+          <div className="flex items-center gap-3.5 min-w-0">
+            <motion.div
+              animate={{
+                scale: [1, 1.08, 1],
+                rotate: [0, 4, -4, 0]
+              }}
+              transition={{
+                duration: 3.5,
+                repeat: Infinity,
+                ease: 'easeInOut'
+              }}
+              className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-br from-[#0EA5E9]/25 via-[#0284C7]/20 to-[#0369A1]/15 border border-[#38BDF8]/35 flex items-center justify-center shrink-0 shadow-[0_0_16px_rgba(14,165,233,0.3)] group-hover:scale-105 transition-transform"
+            >
+              <Compass className="w-5 h-5 sm:w-6 sm:h-6 text-[#38BDF8]" />
+            </motion.div>
+
+            <div className="min-w-0">
+              <h2 className="text-base sm:text-lg font-semibold text-white tracking-tight font-handwritten-serif flex items-center gap-2 group-hover:text-[#38BDF8] transition-colors">
+                The Souls in Room
+              </h2>
+              {/* Tar nicher (Underneath it): You: [notes] */}
+              <p className="text-xs sm:text-sm text-slate-300 truncate font-handwritten-serif italic mt-0.5">
+                You: [{user.status || 'Deep Focus'}]
+              </p>
             </div>
-            <p className="text-xs text-slate-300 truncate font-handwritten-serif italic">
-              You: [{user.status || 'Deep Focus'}]
-            </p>
+          </div>
+
+          {/* Right side: [x] Souls (x represents number of active user) */}
+          <div className="flex items-center gap-2 pl-3 shrink-0">
+            <span className="flex items-center gap-1.5 px-3 py-1.5 sm:px-3.5 sm:py-2 rounded-xl bg-[#0EA5E9]/15 border border-[#0EA5E9]/30 text-[#38BDF8] text-xs sm:text-sm font-semibold font-qurov tracking-wide shadow-sm group-hover:bg-[#0EA5E9]/25 group-hover:border-[#38BDF8]/50 transition-all">
+              <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shadow-[0_0_6px_#34d399]" />
+              <span>[{activeSoulsCount}] Souls</span>
+            </span>
           </div>
         </button>
       </div>
@@ -534,24 +531,37 @@ export const LoungeView: React.FC<LoungeViewProps> = ({
             <button
               type="button"
               onClick={() => setIsMemberListOpen(true)}
-              className="flex items-center gap-2 group cursor-pointer text-left"
+              className="flex items-center gap-2.5 group cursor-pointer text-left min-w-0"
               title="Click to view detailed room activity and what peers are doing"
             >
-              <h2 className="text-2xl font-semibold text-white font-handwritten-serif group-hover:text-[#38BDF8] transition-colors">
-                The Souls
-              </h2>
-              <span className="text-[10px] tracking-wider uppercase px-2 py-0.5 rounded-md bg-[#0EA5E9]/20 text-[#38BDF8] font-qurov border border-[#0EA5E9]/30">
-                {members.length} {members.length === 1 ? 'Soul' : 'Souls'}
-              </span>
+              <motion.div
+                animate={{
+                  scale: [1, 1.08, 1],
+                  rotate: [0, 4, -4, 0]
+                }}
+                transition={{
+                  duration: 3.5,
+                  repeat: Infinity,
+                  ease: 'easeInOut'
+                }}
+                className="w-8 h-8 rounded-xl bg-[#0EA5E9]/20 border border-[#38BDF8]/30 flex items-center justify-center shrink-0"
+              >
+                <Compass className="w-4 h-4 text-[#38BDF8]" />
+              </motion.div>
+              <div className="min-w-0">
+                <h2 className="text-xl font-semibold text-white font-handwritten-serif group-hover:text-[#38BDF8] transition-colors truncate">
+                  The Souls in Room
+                </h2>
+                <p className="text-[11px] text-slate-300 truncate font-handwritten-serif italic">
+                  You: [{user.status || 'Deep Focus'}]
+                </p>
+              </div>
             </button>
 
-            <button
-              type="button"
-              onClick={() => setIsMemberListOpen(true)}
-              className="text-xs text-[#38BDF8] hover:text-white font-qurov cursor-pointer transition-colors"
-            >
-              View All →
-            </button>
+            <span className="shrink-0 flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-[#0EA5E9]/15 text-[#38BDF8] font-qurov text-xs font-semibold border border-[#0EA5E9]/30">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+              <span>[{activeSoulsCount}] Souls</span>
+            </span>
           </div>
 
           {/* Member items list */}

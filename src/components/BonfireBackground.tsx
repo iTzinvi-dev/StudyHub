@@ -39,8 +39,20 @@ export const BonfireBackground: React.FC<{ className?: string }> = ({ className 
 
     const embers: Ember[] = [];
     let tick = 0;
+    let lastTime = 0;
 
-    const render = () => {
+    const render = (time: number) => {
+      if (document.hidden) {
+        animId = requestAnimationFrame(render);
+        return;
+      }
+
+      if (time - lastTime < 32) {
+        animId = requestAnimationFrame(render);
+        return;
+      }
+      lastTime = time;
+
       tick++;
       ctx.clearRect(0, 0, width, height);
 
@@ -49,22 +61,22 @@ export const BonfireBackground: React.FC<{ className?: string }> = ({ className 
       const fireBaseY = height * 0.74;
 
       // Spawn rising glowing sparks & embers
-      if (Math.random() < 0.65) {
+      if (Math.random() < 0.45 && embers.length < 25) {
         embers.push({
-          x: fireBaseX + (Math.random() - 0.5) * 260,
-          y: fireBaseY + (Math.random() - 0.5) * 30,
-          vx: (Math.random() - 0.5) * 1.5,
-          vy: -(Math.random() * 2.8 + 1.6),
-          size: Math.random() * 2.6 + 1.1,
+          x: fireBaseX + (Math.random() - 0.5) * 220,
+          y: fireBaseY + (Math.random() - 0.5) * 20,
+          vx: (Math.random() - 0.5) * 1.2,
+          vy: -(Math.random() * 2.5 + 1.4),
+          size: Math.random() * 2.2 + 1.0,
           alpha: 1,
-          decay: Math.random() * 0.011 + 0.006
+          decay: Math.random() * 0.012 + 0.008
         });
       }
 
       // Draw embers with glowing bokeh blur
       for (let i = embers.length - 1; i >= 0; i--) {
         const e = embers[i];
-        e.x += e.vx + Math.sin(tick * 0.035 + i) * 0.75;
+        e.x += e.vx + Math.sin(tick * 0.035 + i) * 0.6;
         e.y += e.vy;
         e.alpha -= e.decay;
 
@@ -77,7 +89,7 @@ export const BonfireBackground: React.FC<{ className?: string }> = ({ className 
         ctx.arc(e.x, e.y, e.size, 0, Math.PI * 2);
         ctx.fillStyle = `rgba(255, ${Math.floor(175 + Math.random() * 60)}, 25, ${e.alpha})`;
         ctx.shadowColor = '#FFD700';
-        ctx.shadowBlur = 9;
+        ctx.shadowBlur = 6;
         ctx.fill();
         ctx.shadowBlur = 0;
       }
@@ -85,7 +97,7 @@ export const BonfireBackground: React.FC<{ className?: string }> = ({ className 
       animId = requestAnimationFrame(render);
     };
 
-    render();
+    animId = requestAnimationFrame(render);
 
     return () => {
       cancelAnimationFrame(animId);
