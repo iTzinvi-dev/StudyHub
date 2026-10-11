@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0E1626"/>
+      <stop offset="100%" stop-color="#090D16"/>
+    </linearGradient>
+    <linearGradient id="azureGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="50%" stop-color="#0EA5E9"/>
+      <stop offset="100%" stop-color="#6366F1"/>
+    </linearGradient>
+    <radialGradient id="coreGlow" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#38BDF8" stop-opacity="0.45"/>
+      <stop offset="100%" stop-color="#0EA5E9" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Container Squircle in Space Black -->
+  <rect width="64" height="64" rx="16" fill="url(#bgGrad)"/>
+  <rect x="0.75" y="0.75" width="62.5" height="62.5" rx="15.25" stroke="rgba(255,255,255,0.12)" stroke-width="1.5"/>
+
+  <!-- Subtle Radial Ambient Light -->
+  <circle cx="32" cy="32" r="22" fill="url(#coreGlow)"/>
+
+  <!-- Orbital Focus Track -->
+  <circle cx="32" cy="32" r="18" stroke="url(#azureGlow)" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="88 24"/>
+  <circle cx="32" cy="32" r="11" stroke="rgba(56, 189, 248, 0.45)" stroke-width="1.5" stroke-dasharray="4 4"/>
+
+  <!-- Central Sanctuary Core Star in Electric Azure & Pure White -->
+  <path d="M32 19C32 26 38 32 45 32C38 32 32 38 32 45C32 38 26 32 19 32C26 32 32 26 32 19Z" fill="url(#azureGlow)"/>
+  <circle cx="32" cy="32" r="3" fill="#F8FAFC"/>
+</svg>
