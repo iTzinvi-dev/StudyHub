@@ -1,4 +1,5 @@
 import { VisualTheme } from '../types';
+import { safeGetItem, safeSetItem } from './storage';
 
 export const VISUAL_THEMES: VisualTheme[] = [
   {
@@ -87,7 +88,7 @@ export function applyTheme(theme: VisualTheme) {
 }
 
 export function getStoredTheme(): VisualTheme {
-  const savedId = localStorage.getItem('zenbonfire_visual_theme');
+  const savedId = safeGetItem('zenbonfire_visual_theme');
   const found = VISUAL_THEMES.find((t) => t.id === savedId);
   return found || VISUAL_THEMES[0];
 }
@@ -95,14 +96,14 @@ export function getStoredTheme(): VisualTheme {
 export type ThemeMode = 'dark' | 'light' | 'system';
 
 export function getStoredThemeMode(): ThemeMode {
-  const saved = localStorage.getItem('zenbonfire_theme_mode');
+  const saved = safeGetItem('zenbonfire_theme_mode');
   if (saved === 'light' || saved === 'dark' || saved === 'system') return saved;
   return 'dark'; // signature Apple Pro space black
 }
 
 export function applyThemeMode(mode: ThemeMode) {
   const root = document.documentElement;
-  localStorage.setItem('zenbonfire_theme_mode', mode);
+  safeSetItem('zenbonfire_theme_mode', mode);
 
   let effectiveMode: 'dark' | 'light' = 'dark';
   if (mode === 'system') {

@@ -4,6 +4,7 @@ import { UserProfile, Room, RoomMember, AudioVolumes, BackgroundSceneId, TabType
 import { AvatarIcon } from '../utils/avatars';
 import { AudioMixerBar } from '../components/AudioMixerBar';
 import { MemberListDrawer } from '../components/MemberListDrawer';
+import { copyTextToClipboard } from '../utils/storage';
 import { ShimmerButton } from '../components/ui/ShimmerButton';
 import { BorderBeam } from '../components/ui/BorderBeam';
 import { AnimatedShinyText } from '../components/ui/AnimatedShinyText';
@@ -103,8 +104,8 @@ export const LoungeView: React.FC<LoungeViewProps> = ({
     }).length;
   }, [members]);
 
-  const handleCopyRoomCode = () => {
-    navigator.clipboard.writeText(activeRoom.code);
+  const handleCopyRoomCode = async () => {
+    await copyTextToClipboard(activeRoom.code);
     setCopiedCode(true);
     setTimeout(() => setCopiedCode(false), 2000);
   };

@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Smartphone, Monitor, X, Check } from 'lucide-react';
+import { safeGetItem, safeSetItem } from '../utils/storage';
 
 const STORAGE_KEY = 'zenbonfire_desktop_site_notice_seen';
 
@@ -9,7 +10,7 @@ export const MobileDesktopNoticePopup: React.FC = () => {
 
   useEffect(() => {
     try {
-      const hasSeen = localStorage.getItem(STORAGE_KEY);
+      const hasSeen = safeGetItem(STORAGE_KEY);
       if (!hasSeen) {
         // Small initial delay so it enters smoothly after app hydration
         const timer = setTimeout(() => {
@@ -26,7 +27,7 @@ export const MobileDesktopNoticePopup: React.FC = () => {
   const handleDismiss = () => {
     setIsOpen(false);
     try {
-      localStorage.setItem(STORAGE_KEY, 'true');
+      safeSetItem(STORAGE_KEY, 'true');
     } catch {
       // ignore
     }

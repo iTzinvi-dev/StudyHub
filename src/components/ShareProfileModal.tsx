@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { UserProfile } from '../types';
 import { AvatarIcon } from '../utils/avatars';
+import { copyTextToClipboard } from '../utils/storage';
 import { X, Copy, Check, Share2, Flame, Clock, Award } from 'lucide-react';
 
 interface ShareProfileModalProps {
@@ -16,8 +17,8 @@ export const ShareProfileModal: React.FC<ShareProfileModalProps> = ({ user, isOp
 
   const profileUrl = `${window.location.origin}/p/${user.username || 'sourav'}`;
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(profileUrl);
+  const handleCopy = async () => {
+    await copyTextToClipboard(profileUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2500);
   };

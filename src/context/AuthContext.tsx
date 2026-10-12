@@ -9,14 +9,15 @@ import {
   subscribeUserProfile
 } from '../lib/firebase';
 import { UserProfile } from '../types';
+import { safeGetItem, safeSetItem, safeRemoveItem } from '../utils/storage';
 
 const getInitialGuestUser = (): UserProfile => {
   let guestId = '';
   try {
-    guestId = localStorage.getItem('zenbonfire_guest_uid') || '';
+    guestId = safeGetItem('zenbonfire_guest_uid') || '';
     if (!guestId || guestId === 'usr_guest' || guestId === 'guest_me') {
       guestId = 'guest_' + Math.random().toString(36).substring(2, 9);
-      localStorage.setItem('zenbonfire_guest_uid', guestId);
+      safeSetItem('zenbonfire_guest_uid', guestId);
     }
   } catch {
     guestId = 'guest_' + Math.random().toString(36).substring(2, 9);
@@ -55,7 +56,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const [user, setUser] = useState<UserProfile>(() => {
     try {
-      const saved = localStorage.getItem('zenbonfire_user');
+      const saved = safeGetItem('zenbonfire_user');
       return saved ? JSON.parse(saved) : defaultGuest;
     } catch {
       return defaultGuest;
@@ -76,19 +77,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         try {
           const profile = await getOrCreateUserProfile(fbUser);
           setUser(profile);
-          try {
-            localStorage.setItem('zenbonfire_user', JSON.stringify(profile));
-          } catch {
-            // ignore
-          }
+          safeSetItem('zenbonfire_user', JSON.stringify(profile));
 
           profileUnsub = subscribeUserProfile(fbUser.uid, (updated) => {
             setUser(updated);
-            try {
-              localStorage.setItem('zenbonfire_user', JSON.stringify(updated));
-            } catch {
-              // ignore
-            }
+            safeSetItem('zenbonfire_user', JSON.stringify(updated));
           });
         } catch (err) {
           console.warn('[AuthContext] Profile sync error:', err);
@@ -96,7 +89,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         // Logged-out / Guest mode
         try {
-          const saved = localStorage.getItem('zenbonfire_user');
+          const saved = safeGetItem('zenbonfire_user');
           if (saved) {
             setUser(JSON.parse(saved));
           } else {
@@ -121,12 +114,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       const profile = await fbSignInWithGoogle();
       if (profile) {
         setUser(profile);
-        try {
-          localStorage.setItem('zenbonfire_user', JSON.stringify(profile));
-          localStorage.setItem('zenbonfire_onboarded', 'true');
-        } catch {
-          // ignore
-        }
+        safeSetItem('zenbonfire_user', JSON.stringify(profile));
+        safeSetItem('zenbonfire_onboarded', 'true');
       }
       return profile;
     } catch (err) {
@@ -139,20 +128,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await fbSignOutUser();
     setFirebaseUser(null);
     setUser(defaultGuest);
-    try {
-      localStorage.removeItem('zenbonfire_user');
-    } catch {
-      // ignore
-    }
+    safeRemoveItem('zenbonfire_user');
   }, [defaultGuest]);
 
   const updateUser = useCallback(async (updated: UserProfile) => {
     setUser(updated);
-    try {
-      localStorage.setItem('zenbonfire_user', JSON.stringify(updated));
-    } catch {
-      // ignore
-    }
+    safeSetItem('zenbonfire_user', JSON.stringify(updated));
     if (auth.currentUser) {
       await updateUserInFirestore(auth.currentUser.uid, updated);
     }

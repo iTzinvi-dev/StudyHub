@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import katex from 'katex';
 import { Copy, Check } from 'lucide-react';
+import { copyTextToClipboard } from '../utils/storage';
 
 interface KatexTextProps {
   content: string;
@@ -80,8 +81,8 @@ function isCurrency(text: string): boolean {
 const CodeBlock: React.FC<{ language: string; code: string }> = ({ language, code }) => {
   const [copied, setCopied] = useState(false);
 
-  const handleCopy = () => {
-    navigator.clipboard.writeText(code);
+  const handleCopy = async () => {
+    await copyTextToClipboard(code);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };

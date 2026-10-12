@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { auth, subscribeUserHabits, saveHabitToFirestore, deleteHabitFromFirestore, syncLocalHabitsToFirestore, HabitRecord } from '../lib/firebase';
 import { UserProfile } from '../types';
+import { safeGetItem, safeSetItem } from '../utils/storage';
 
 interface RoutineMatrixProps {
   user: UserProfile;
@@ -189,7 +190,7 @@ export const RoutineMatrix: React.FC<RoutineMatrixProps> = ({ user, className = 
   // 2. Initial state: Exactly the 3 canonical templates (Study, Reading, Workout)
   const [habits, setHabits] = useState<HabitRecord[]>(() => {
     try {
-      const saved = localStorage.getItem(localStorageKey);
+      const saved = safeGetItem(localStorageKey);
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length >= 3) {
@@ -295,7 +296,7 @@ export const RoutineMatrix: React.FC<RoutineMatrixProps> = ({ user, className = 
 
         setHabits(initial);
         try {
-          localStorage.setItem(localStorageKey, JSON.stringify(initial));
+          safeSetItem(localStorageKey, JSON.stringify(initial));
         } catch {
           // ignore
         }
@@ -326,7 +327,7 @@ export const RoutineMatrix: React.FC<RoutineMatrixProps> = ({ user, className = 
       if (currentJson !== incomingJson) {
         setHabits(sanitized);
         try {
-          localStorage.setItem(localStorageKey, incomingJson);
+          safeSetItem(localStorageKey, incomingJson);
         } catch {
           // ignore
         }
@@ -367,7 +368,7 @@ export const RoutineMatrix: React.FC<RoutineMatrixProps> = ({ user, className = 
     );
     setHabits(updated);
     try {
-      localStorage.setItem(localStorageKey, JSON.stringify(updated));
+      safeSetItem(localStorageKey, JSON.stringify(updated));
     } catch {
       // ignore
     }
@@ -442,7 +443,7 @@ export const RoutineMatrix: React.FC<RoutineMatrixProps> = ({ user, className = 
 
     setHabits(updatedList);
     try {
-      localStorage.setItem(localStorageKey, JSON.stringify(updatedList));
+      safeSetItem(localStorageKey, JSON.stringify(updatedList));
     } catch {
       // ignore
     }
@@ -525,7 +526,7 @@ export const RoutineMatrix: React.FC<RoutineMatrixProps> = ({ user, className = 
 
     setHabits(updatedList);
     try {
-      localStorage.setItem(localStorageKey, JSON.stringify(updatedList));
+      safeSetItem(localStorageKey, JSON.stringify(updatedList));
     } catch {
       // ignore
     }
@@ -577,7 +578,7 @@ export const RoutineMatrix: React.FC<RoutineMatrixProps> = ({ user, className = 
 
     setHabits(updatedList);
     try {
-      localStorage.setItem(localStorageKey, JSON.stringify(updatedList));
+      safeSetItem(localStorageKey, JSON.stringify(updatedList));
     } catch {
       // ignore
     }
@@ -636,7 +637,7 @@ export const RoutineMatrix: React.FC<RoutineMatrixProps> = ({ user, className = 
 
     setHabits(updatedList);
     try {
-      localStorage.setItem(localStorageKey, JSON.stringify(updatedList));
+      safeSetItem(localStorageKey, JSON.stringify(updatedList));
     } catch {
       // ignore
     }
@@ -685,7 +686,7 @@ export const RoutineMatrix: React.FC<RoutineMatrixProps> = ({ user, className = 
     const updated = [...habitsRef.current, newHabit];
     setHabits(updated);
     try {
-      localStorage.setItem(localStorageKey, JSON.stringify(updated));
+      safeSetItem(localStorageKey, JSON.stringify(updated));
     } catch {
       // ignore
     }
@@ -709,7 +710,7 @@ export const RoutineMatrix: React.FC<RoutineMatrixProps> = ({ user, className = 
     const updated = habitsRef.current.filter((h) => h.id !== habitId);
     setHabits(updated);
     try {
-      localStorage.setItem(localStorageKey, JSON.stringify(updated));
+      safeSetItem(localStorageKey, JSON.stringify(updated));
     } catch {
       // ignore
     }

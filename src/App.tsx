@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { TabType, UserProfile, Room, RoomMember, AudioVolumes, SoundscapeTrack, ThemeMode, BackgroundSceneId } from './types';
 import { soundEngine } from './utils/audio';
 import { getStoredThemeMode, applyThemeMode } from './utils/themes';
+import { safeGetItem, safeSetItem } from './utils/storage';
 import { CURATED_SOUNDSCAPES, DEFAULT_SOUNDSCAPE } from './utils/soundscapes';
 import { Sidebar } from './components/Sidebar';
 import { OnboardingModal } from './components/OnboardingModal';
@@ -41,10 +42,10 @@ import { createSanctuaryRoom, findRoomByCode, auth, subscribeZenModePresence, se
 const getInitialGuestUser = (): UserProfile => {
   let guestId = '';
   try {
-    guestId = localStorage.getItem('zenbonfire_guest_uid') || '';
+    guestId = safeGetItem('zenbonfire_guest_uid') || '';
     if (!guestId || guestId === 'usr_guest' || guestId === 'guest_me') {
       guestId = 'guest_' + Math.random().toString(36).substring(2, 9);
-      localStorage.setItem('zenbonfire_guest_uid', guestId);
+      safeSetItem('zenbonfire_guest_uid', guestId);
     }
   } catch {
     guestId = 'guest_' + Math.random().toString(36).substring(2, 9);
@@ -95,21 +96,17 @@ export const App: React.FC = () => {
   } = useFirebase(GUEST_USER, activeRoom.id);
 
   const [isOnboarded, setIsOnboarded] = useState<boolean>(() => {
-    try {
-      return !!localStorage.getItem('zenbonfire_onboarded');
-    } catch {
-      return false;
-    }
+    return !!safeGetItem('zenbonfire_onboarded');
   });
 
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(() => {
-    return !localStorage.getItem('zenbonfire_onboarded');
+    return !safeGetItem('zenbonfire_onboarded');
   });
 
   // Navigation tab with localStorage persistence
   const [currentTab, setCurrentTab] = useState<TabType>(() => {
     try {
-      const saved = localStorage.getItem('zenbonfire_current_tab') as TabType;
+      const saved = safeGetItem('zenbonfire_current_tab') as TabType;
       const validTabs: TabType[] = ['lounge', 'tracker', 'environment', 'mentor', 'quizzes', 'leaderboard', 'profile'];
       if (saved && validTabs.includes(saved)) {
         return saved;
@@ -191,7 +188,7 @@ export const App: React.FC = () => {
   // Audio Mixer State with localStorage persistence
   const [audioVolumes, setAudioVolumes] = useState<AudioVolumes>(() => {
     try {
-      const saved = localStorage.getItem('zenbonfire_audio_volumes');
+      const saved = safeGetItem('zenbonfire_audio_volumes');
       if (saved) {
         const parsed = JSON.parse(saved);
         if (
@@ -229,19 +226,19 @@ export const App: React.FC = () => {
 
   // Section tips seen tracking
   const [seenTabs, setSeenTabs] = useState<Record<string, boolean>>(() => {
-    const saved = localStorage.getItem('zenbonfire_seen_tips');
+    const saved = safeGetItem('zenbonfire_seen_tips');
     return saved ? JSON.parse(saved) : {};
   });
 
   // YouTube Ambient Audio Engine State
   const [activeSoundscape, setActiveSoundscape] = useState<SoundscapeTrack>(() => {
-    const savedId = localStorage.getItem('zenbonfire_soundscape_id');
+    const savedId = safeGetItem('zenbonfire_soundscape_id');
     const found = CURATED_SOUNDSCAPES.find((s) => s.id === savedId);
     return found || DEFAULT_SOUNDSCAPE;
   });
   const [isYouTubePlaying, setIsYouTubePlaying] = useState(false);
   const [youTubeVolume, setYouTubeVolume] = useState(() => {
-    const saved = localStorage.getItem('zenbonfire_yt_volume');
+    const saved = safeGetItem('zenbonfire_yt_volume');
     return saved ? parseFloat(saved) : 0.65;
   });
   const [isYouTubeMuted, setIsYouTubeMuted] = useState(false);
@@ -251,13 +248,13 @@ export const App: React.FC = () => {
 
   // Sanctuary Background Scene (Study Desk vs Bonfire Hearth)
   const [backgroundScene, setBackgroundScene] = useState<BackgroundSceneId>(() => {
-    const saved = localStorage.getItem('zenbonfire_background_scene');
+    const saved = safeGetItem('zenbonfire_background_scene');
     return saved === 'bonfire-hearth' ? 'bonfire-hearth' : 'study-desk';
   });
 
   const handleBackgroundSceneChange = (scene: BackgroundSceneId) => {
     setBackgroundScene(scene);
-    localStorage.setItem('zenbonfire_background_scene', scene);
+    safeSetItem('zenbonfire_background_scene', scene);
     triggerToast(
       `Background: ${scene === 'study-desk' ? 'Rainy Study Desk Sanctuary' : 'Crackling Bonfire Sanctuary'}`
     );
@@ -286,7 +283,7 @@ export const App: React.FC = () => {
   useEffect(() => {
     soundEngine.setVolumes(audioVolumes);
     try {
-      localStorage.setItem('zenbonfire_audio_volumes', JSON.stringify(audioVolumes));
+      safeSetItem('zenbonfire_audio_volumes', JSON.stringify(audioVolumes));
     } catch {
       // ignore
     }
@@ -362,7 +359,7 @@ export const App: React.FC = () => {
   // Save user profile to Firebase & localStorage
   const handleSaveUser = (updated: UserProfile) => {
     updateUser(updated);
-    localStorage.setItem('zenbonfire_onboarded', 'true');
+    safeSetItem('zenbonfire_onboarded', 'true');
     setIsOnboarded(true);
     setIsOnboardingOpen(false);
     triggerToast(`Welcome to the Sanctuary, ${updated.name}.`);
@@ -372,7 +369,7 @@ export const App: React.FC = () => {
     try {
       const profile = await signInWithGoogle();
       if (profile) {
-        localStorage.setItem('zenbonfire_onboarded', 'true');
+        safeSetItem('zenbonfire_onboarded', 'true');
         setIsOnboarded(true);
         setIsOnboardingOpen(false);
         triggerToast(`Welcome back, ${profile.name}.`);
@@ -397,17 +394,13 @@ export const App: React.FC = () => {
     setIsPlanModalOpen(false);
     setIsShareModalOpen(false);
     setCurrentTab(tab);
-    try {
-      localStorage.setItem('zenbonfire_current_tab', tab);
-    } catch {
-      // ignore
-    }
+    safeSetItem('zenbonfire_current_tab', tab);
   }, [isZenModeActive]);
 
   const handleDismissTip = (tab: TabType) => {
     const updated = { ...seenTabs, [tab]: true };
     setSeenTabs(updated);
-    localStorage.setItem('zenbonfire_seen_tips', JSON.stringify(updated));
+    safeSetItem('zenbonfire_seen_tips', JSON.stringify(updated));
   };
 
   const handleResetCurrentTip = () => {
@@ -595,7 +588,7 @@ export const App: React.FC = () => {
             activeSoundscape={activeSoundscape}
             onSelectSoundscape={(track) => {
               setActiveSoundscape(track);
-              localStorage.setItem('zenbonfire_soundscape_id', track.id);
+              safeSetItem('zenbonfire_soundscape_id', track.id);
               triggerToast(`Selected: ${track.title}`);
             }}
             isRawVideo={isRawVideo}
@@ -697,12 +690,12 @@ export const App: React.FC = () => {
                       onToggleYouTubePlay={() => setIsYouTubePlaying((prev) => !prev)}
                       onSetYouTubeVolume={(vol) => {
                         setYouTubeVolume(vol);
-                        localStorage.setItem('zenbonfire_yt_volume', vol.toString());
+                        safeSetItem('zenbonfire_yt_volume', vol.toString());
                       }}
                       onToggleYouTubeMute={() => setIsYouTubeMuted((prev) => !prev)}
                       onSelectSoundscape={(track) => {
                         setActiveSoundscape(track);
-                        localStorage.setItem('zenbonfire_soundscape_id', track.id);
+                        safeSetItem('zenbonfire_soundscape_id', track.id);
                         triggerToast(`Selected: ${track.title}`);
                       }}
                       onSetCustomYouTubeUrl={(url) => {

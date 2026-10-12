@@ -16,10 +16,11 @@ import {
   testFirebaseConnection
 } from '../lib/firebase';
 import { UserProfile, RoomMember } from '../types';
+import { safeGetItem, safeSetItem, safeRemoveItem } from '../utils/storage';
 
 export function useFirebase(defaultUser: UserProfile, activeRoomId: string = 'public_lounge') {
   const [user, setUser] = useState<UserProfile>(() => {
-    const saved = localStorage.getItem('zenbonfire_user');
+    const saved = safeGetItem('zenbonfire_user');
     return saved ? JSON.parse(saved) : defaultUser;
   });
   const [loading, setLoading] = useState(true);
@@ -50,7 +51,7 @@ export function useFirebase(defaultUser: UserProfile, activeRoomId: string = 'pu
         try {
           const profile = await getOrCreateUserProfile(fbUser);
           setUser(profile);
-          localStorage.setItem('zenbonfire_user', JSON.stringify(profile));
+          safeSetItem('zenbonfire_user', JSON.stringify(profile));
 
           // Set up Realtime Database onDisconnect() and initial [Studying] presence
           await setupRealtimePresence(
@@ -63,7 +64,7 @@ export function useFirebase(defaultUser: UserProfile, activeRoomId: string = 'pu
           // Real-time synchronization of user document
           profileUnsub = subscribeUserProfile(fbUser.uid, (updatedProfile) => {
             setUser(updatedProfile);
-            localStorage.setItem('zenbonfire_user', JSON.stringify(updatedProfile));
+            safeSetItem('zenbonfire_user', JSON.stringify(updatedProfile));
           });
 
           // Real-time subscription to focus sessions
@@ -84,7 +85,7 @@ export function useFirebase(defaultUser: UserProfile, activeRoomId: string = 'pu
         }
       } else {
         // Guest mode: use local profile and offline-first storage
-        const saved = localStorage.getItem('zenbonfire_user');
+        const saved = safeGetItem('zenbonfire_user');
         if (saved) {
           try {
             setUser(JSON.parse(saved));
@@ -191,8 +192,8 @@ export function useFirebase(defaultUser: UserProfile, activeRoomId: string = 'pu
       const profile = await fbSignInWithGoogle();
       if (profile) {
         setUser(profile);
-        localStorage.setItem('zenbonfire_user', JSON.stringify(profile));
-        localStorage.setItem('zenbonfire_onboarded', 'true');
+        safeSetItem('zenbonfire_user', JSON.stringify(profile));
+        safeSetItem('zenbonfire_onboarded', 'true');
         await setupRealtimePresence(profile.id, profile.name, profile.avatarId, activeRoomIdRef.current);
       }
       return profile;
@@ -206,13 +207,13 @@ export function useFirebase(defaultUser: UserProfile, activeRoomId: string = 'pu
   const signOut = useCallback(async () => {
     await fbSignOutUser();
     setUser(defaultUser);
-    localStorage.removeItem('zenbonfire_user');
+    safeRemoveItem('zenbonfire_user');
   }, [defaultUser]);
 
   // 8. Update User Profile in Real-time
   const updateUser = useCallback(async (updated: UserProfile) => {
     setUser(updated);
-    localStorage.setItem('zenbonfire_user', JSON.stringify(updated));
+    safeSetItem('zenbonfire_user', JSON.stringify(updated));
     const currentUid = auth.currentUser?.uid || updated.id;
     if (auth.currentUser) {
       await updateUserInFirestore(auth.currentUser.uid, updated);
@@ -275,7 +276,7 @@ export function useFirebase(defaultUser: UserProfile, activeRoomId: string = 'pu
       todayMinutes: (user.todayMinutes || 0) + minutes
     };
     setUser(updatedUser);
-    localStorage.setItem('zenbonfire_user', JSON.stringify(updatedUser));
+    safeSetItem('zenbonfire_user', JSON.stringify(updatedUser));
 
     return result;
   }, [user]);
