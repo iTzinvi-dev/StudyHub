@@ -1,7 +1,7 @@
 import express from 'express';
 import type { Request, Response } from 'express';
 import { createServer as createViteServer } from 'vite';
-import { GoogleGenAI } from '@google/genai';
+import Groq from 'groq-sdk';
 import fs from 'fs';
 import path from 'path';
 
@@ -19,7 +19,7 @@ if (fs.existsSync('.env')) {
       if (idx > 0) {
         const key = trimmed.slice(0, idx).trim();
         const val = trimmed.slice(idx + 1).trim();
-        if (!process.env[key] || process.env[key] === 'MY_GEMINI_API_KEY') {
+        if (!process.env[key]) {
           process.env[key] = val;
         }
       }
@@ -29,8 +29,8 @@ if (fs.existsSync('.env')) {
   }
 }
 
-const GEMINI_API_KEY = process.env.GEMINI_API_KEY || '';
-const ai = new GoogleGenAI(GEMINI_API_KEY ? { apiKey: GEMINI_API_KEY } : {});
+const GROQ_API_KEY = process.env.GROQ_API_KEY || '';
+const groq = new Groq({ apiKey: GROQ_API_KEY });
 
 // Multi-purpose Universal AI Mentor System Prompt
 const MENTOR_SYSTEM_PROMPT = `You are the StudyHub AI Mentor — a versatile, deeply knowledgeable, multi-purpose learning companion and universal tutor for StudyHub (a modern, deliberate focus sanctuary crafted in Apple Space Black & Electric Azure liquid glass).
@@ -64,7 +64,7 @@ CRITICAL FORMATTING & KATEX GUIDELINES:
    - Structure explanations logically: Intuition/First Principles -> Deep Breakdown/Derivation -> Practical Example or Key Takeaway.
    - Maintain an encouraging, intellectually inspiring, clear, and focused pedagogical tone.`;
 
-// API Route 1: Streaming chat route using Google GenAI SDK (multi-purpose mentor)
+// API Route 1: Streaming chat route using Groq Qwen 3.8 Reasoning Model (multi-purpose mentor)
 app.post('/api/chat', async (req: Request, res: Response) => {
   const { prompt, history = [] } = req.body;
 
@@ -81,81 +81,69 @@ app.post('/api/chat', async (req: Request, res: Response) => {
     (res as any).flushHeaders();
   }
 
-  const modelsToTry = ['gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
+  // Construct conversation messages for Groq Qwen 3.8
+  const messages: any[] = [
+    { role: 'system', content: MENTOR_SYSTEM_PROMPT }
+  ];
 
-  // Construct conversation contents for Gemini
-  const contents: any[] = [];
   if (Array.isArray(history) && history.length > 0) {
     for (const msg of history) {
       const text = (msg.text || msg.content || '').trim();
       if (!text) continue;
-      const role = msg.role === 'assistant' || msg.role === 'model' ? 'model' : 'user';
-      contents.push({
+      const role = msg.role === 'assistant' || msg.role === 'model' ? 'assistant' : 'user';
+      messages.push({
         role,
-        parts: [{ text }]
+        content: text
       });
     }
   }
 
   // Add current query
-  contents.push({
+  messages.push({
     role: 'user',
-    parts: [{ text: prompt }]
+    content: prompt
   });
 
   let streamedSuccess = false;
 
-  for (const model of modelsToTry) {
-    try {
-      const stream = await ai.models.generateContentStream({
-        model,
-        contents,
-        config: {
-          systemInstruction: MENTOR_SYSTEM_PROMPT,
-          temperature: 0.7
-        }
-      });
+  try {
+    const stream = await groq.chat.completions.create({
+      model: 'qwen/qwen3.8-27b',
+      messages,
+      stream: true,
+      temperature: 0.6
+    });
 
-      for await (const chunk of stream) {
-        const text = chunk.text || '';
-        if (text) {
-          res.write(`data: ${JSON.stringify({ text })}\n\n`);
-          if (typeof (res as any).flush === 'function') {
-            (res as any).flush();
-          }
-          streamedSuccess = true;
+    for await (const chunk of stream) {
+      const content = chunk.choices[0]?.delta?.content || '';
+      if (content) {
+        res.write(`data: ${JSON.stringify({ text: content })}\n\n`);
+        if (typeof (res as any).flush === 'function') {
+          (res as any).flush();
         }
+        streamedSuccess = true;
       }
-
-      if (streamedSuccess) {
-        break;
-      }
-    } catch (err: any) {
-      console.warn(`[AI Mentor] Model ${model} stream error:`, err?.message || err);
     }
+  } catch (err: any) {
+    console.warn('[AI Mentor] Qwen 3.8 stream error:', err?.message || err);
   }
 
   // Fallback to non-streaming generation if stream produced no tokens
   if (!streamedSuccess) {
-    for (const model of modelsToTry) {
-      try {
-        const response = await ai.models.generateContent({
-          model,
-          contents,
-          config: {
-            systemInstruction: MENTOR_SYSTEM_PROMPT,
-            temperature: 0.7
-          }
-        });
+    try {
+      const completion = await groq.chat.completions.create({
+        model: 'qwen/qwen3.8-27b',
+        messages,
+        temperature: 0.6
+      });
 
-        if (response.text) {
-          res.write(`data: ${JSON.stringify({ text: response.text })}\n\n`);
-          streamedSuccess = true;
-          break;
-        }
-      } catch (err: any) {
-        console.warn(`[AI Mentor] Model ${model} fallback error:`, err?.message || err);
+      const text = completion.choices[0]?.message?.content || '';
+      if (text) {
+        res.write(`data: ${JSON.stringify({ text })}\n\n`);
+        streamedSuccess = true;
       }
+    } catch (err: any) {
+      console.warn('[AI Mentor] Qwen 3.8 fallback error:', err?.message || err);
     }
   }
 
@@ -163,7 +151,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
   res.end();
 });
 
-// API Route 2: Strict JSON array for Active Recall quizzes with full KaTeX support
+// API Route 2: Strict JSON array for Active Recall quizzes with full KaTeX support using GPT OSS 20B
 app.post('/api/quiz', async (req: Request, res: Response) => {
   const { topic = 'General Knowledge and Science', count = 4 } = req.body;
 
@@ -187,38 +175,37 @@ Each object in the array MUST strictly follow this exact schema:
   "explanation": "Clear explanation of why this answer is correct"
 }`;
 
-  const modelsToTry = ['gemini-2.5-flash', 'gemini-3.8-flash', 'gemini-2.0-flash', 'gemini-flash-latest'];
   let questionsArray: any[] = [];
 
-  for (const model of modelsToTry) {
+  try {
+    const completion = await groq.chat.completions.create({
+      model: 'openai/gpt-oss-20b',
+      messages: [
+        {
+          role: 'system',
+          content: 'You are an Active Recall Quiz Engine. You MUST output strict valid JSON with a "questions" array. If math or science formulas are required, format them in KaTeX notation ($...).'
+        },
+        { role: 'user', content: prompt }
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.2
+    });
+
+    const content = completion.choices[0]?.message?.content || '{}';
+    let parsed: any;
     try {
-      const response = await ai.models.generateContent({
-        model,
-        contents: prompt,
-        config: {
-          systemInstruction: 'You are an Active Recall Quiz Engine. You MUST output strict valid JSON. If math or science formulas are required, format them in KaTeX notation ($...$).',
-          responseMimeType: 'application/json',
-          temperature: 0.3
-        }
-      });
-
-      const content = response.text || '{}';
-      let parsed: any;
-      try {
-        parsed = JSON.parse(content);
-      } catch {
-        const cleaned = content.replace(/```json/g, '').replace(/```/g, '').trim();
-        parsed = JSON.parse(cleaned);
-      }
-
-      const list = Array.isArray(parsed) ? parsed : (parsed.questions || parsed.quiz || []);
-      if (Array.isArray(list) && list.length > 0) {
-        questionsArray = list;
-        break;
-      }
-    } catch (error: any) {
-      console.warn(`[Quiz Engine] Model ${model} error:`, error?.message || error);
+      parsed = JSON.parse(content);
+    } catch {
+      const cleaned = content.replace(/```json/g, '').replace(/```/g, '').trim();
+      parsed = JSON.parse(cleaned);
     }
+
+    const list = Array.isArray(parsed) ? parsed : (parsed.questions || parsed.quiz || []);
+    if (Array.isArray(list) && list.length > 0) {
+      questionsArray = list;
+    }
+  } catch (error: any) {
+    console.warn('[Quiz Engine] GPT OSS 20B error:', error?.message || error);
   }
 
   if (questionsArray.length === 0) {
