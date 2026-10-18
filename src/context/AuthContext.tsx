@@ -10,17 +10,18 @@ import {
 } from '../lib/firebase';
 import { UserProfile } from '../types';
 import { safeGetItem, safeSetItem, safeRemoveItem } from '../utils/storage';
+import { generateGuestId } from '../utils/secureId';
 
 const getInitialGuestUser = (): UserProfile => {
   let guestId = '';
   try {
     guestId = safeGetItem('zenbonfire_guest_uid') || '';
     if (!guestId || guestId === 'usr_guest' || guestId === 'guest_me') {
-      guestId = 'guest_' + Math.random().toString(36).substring(2, 9);
+      guestId = generateGuestId();
       safeSetItem('zenbonfire_guest_uid', guestId);
     }
   } catch {
-    guestId = 'guest_' + Math.random().toString(36).substring(2, 9);
+    guestId = generateGuestId();
   }
   return {
     id: guestId,

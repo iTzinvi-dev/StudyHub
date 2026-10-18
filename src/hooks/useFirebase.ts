@@ -17,6 +17,7 @@ import {
 } from '../lib/firebase';
 import { UserProfile, RoomMember } from '../types';
 import { safeGetItem, safeSetItem, safeRemoveItem } from '../utils/storage';
+import { generateSessionId } from '../utils/secureId';
 
 export function useFirebase(defaultUser: UserProfile, activeRoomId: string = 'public_lounge') {
   const [user, setUser] = useState<UserProfile>(() => {
@@ -256,7 +257,7 @@ export function useFirebase(defaultUser: UserProfile, activeRoomId: string = 'pu
 
     // Optimistically update sessions for instant heatmap responsiveness
     const newRecord: FocusSessionRecord = {
-      id: 'sess_' + Date.now(),
+      id: generateSessionId(),
       minutes,
       hours: hoursAdded,
       date: todayStr,

@@ -4,9 +4,36 @@ import { createServer as createViteServer } from 'vite';
 import Groq from 'groq-sdk';
 import fs from 'fs';
 import path from 'path';
+import rateLimit from 'express-rate-limit';
 
 const app = express();
+
+// Trust the first proxy (needed for correct req.ip behind reverse proxies)
+app.set('trust proxy', 1);
+
 app.use(express.json());
+
+// --- Rate Limiting (fixes CodeQL "Missing rate limiting" alert #10) ---
+
+// General API limiter: 200 requests per 15 minutes per IP
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 200,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'Too many requests, please try again later.' }
+});
+
+// Stricter limiter for expensive AI endpoints: 30 requests per 15 minutes per IP
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  limit: 30,
+  standardHeaders: 'draft-8',
+  legacyHeaders: false,
+  message: { error: 'AI request limit reached. Please wait before trying again.' }
+});
+
+app.use('/api/', apiLimiter);
 
 // Load local .env if available
 if (fs.existsSync('.env')) {
@@ -65,7 +92,7 @@ CRITICAL FORMATTING & KATEX GUIDELINES:
    - Maintain an encouraging, intellectually inspiring, clear, and focused pedagogical tone.`;
 
 // API Route 1: Streaming chat route using Groq Qwen 3.8 Reasoning Model (multi-purpose mentor)
-app.post('/api/chat', async (req: Request, res: Response) => {
+app.post('/api/chat', aiLimiter, async (req: Request, res: Response) => {
   const { prompt, history = [] } = req.body;
 
   if (!prompt || typeof prompt !== 'string') {
@@ -152,7 +179,7 @@ app.post('/api/chat', async (req: Request, res: Response) => {
 });
 
 // API Route 2: Strict JSON array for Active Recall quizzes with full KaTeX support using GPT OSS 20B
-app.post('/api/quiz', async (req: Request, res: Response) => {
+app.post('/api/quiz', aiLimiter, async (req: Request, res: Response) => {
   const { topic = 'General Knowledge and Science', count = 4 } = req.body;
 
   const prompt = `Generate exactly ${count} active recall multiple-choice quiz questions on the topic: "${topic}".

@@ -4,6 +4,7 @@ import { TabType, UserProfile, Room, RoomMember, AudioVolumes, SoundscapeTrack, 
 import { soundEngine } from './utils/audio';
 import { getStoredThemeMode, applyThemeMode } from './utils/themes';
 import { safeGetItem, safeSetItem } from './utils/storage';
+import { generateGuestId } from './utils/secureId';
 import { CURATED_SOUNDSCAPES, DEFAULT_SOUNDSCAPE } from './utils/soundscapes';
 import { Sidebar } from './components/Sidebar';
 import { OnboardingModal } from './components/OnboardingModal';
@@ -44,11 +45,11 @@ const getInitialGuestUser = (): UserProfile => {
   try {
     guestId = safeGetItem('zenbonfire_guest_uid') || '';
     if (!guestId || guestId === 'usr_guest' || guestId === 'guest_me') {
-      guestId = 'guest_' + Math.random().toString(36).substring(2, 9);
+      guestId = generateGuestId();
       safeSetItem('zenbonfire_guest_uid', guestId);
     }
   } catch {
-    guestId = 'guest_' + Math.random().toString(36).substring(2, 9);
+    guestId = generateGuestId();
   }
   return {
     id: guestId,
